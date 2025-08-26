@@ -51,7 +51,13 @@ export default function App() {
         {/* Bottom Nav */}
         <nav
           className="d-flex justify-content-around p-2 border-top"
-          style={{ backgroundColor: '#fff', borderTop: '1px solid #dee2e6' }}
+          style={{
+            backgroundColor: '#fff',
+            borderTop: '1px solid #dee2e6',
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 1000,
+          }}
         >
           {['inventory', 'transaction', 'logs'].map((p) => (
             <button
