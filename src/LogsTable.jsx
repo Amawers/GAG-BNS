@@ -5,73 +5,64 @@ export default function LogsTable() {
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
-    // 📌 Fetch latest 200 logs, newest first
     async function load() {
       const { data, error } = await supabase
         .from('logs')
         .select('*')
         .order('timestamp', { ascending: false })
-        .limit(200);
+        .limit(1000); // fetch more to group
 
-      if (!error) setRows(data || []);
+      if (error) return;
+
+      // Group logs by transaction reference: timestamp + account + action + user
+      const grouped = {};
+      data.forEach(log => {
+        const key = `${log.timestamp}|${log.account}|${log.action}|${log.transact_by}`;
+        if (!grouped[key]) grouped[key] = { ...log, products: [], totalSales: 0 };
+        if (log.product) grouped[key].products.push(log.product); // safe push
+        grouped[key].totalSales += Number(log.sales) || 0;
+      });
+
+      setRows(Object.values(grouped));
     }
+
     load();
   }, []);
 
-  // 📌 Helper: Format numbers into Peso currency
-  const formatPeso = (val) =>
-    val != null ? `₱${Number(val).toLocaleString()}` : '—';
+  const formatPeso = (val) => val != null ? `₱${Number(val).toLocaleString()}` : '—';
 
   return (
     <div>
-      {/* Title */}
       <h5 className="mb-3">Logs</h5>
 
       <div className="card shadow-sm">
-        <div
-          className="card-body p-0"
-          style={{ maxHeight: '400px', overflowY: 'auto' }}
-        >
-          {/* 📌 Logs table */}
+        <div className="card-body p-0" style={{ maxHeight: '400px', overflowY: 'auto' }}>
           <table className="table table-striped table-hover mb-0">
             <thead className="table-light">
               <tr>
                 <th>When</th>
                 <th>Account</th>
-                <th>Product</th>
-                <th>Value</th>
+                <th>Product(s)</th>
                 <th>Action</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Old</th>
-                <th>New</th>
                 <th>Sales</th>
                 <th>By</th>
               </tr>
             </thead>
             <tbody>
-              {/* 📌 Loop through each log row */}
               {rows.map((r, i) => (
                 <tr key={i}>
-                  {/* Format timestamp into readable date/time */}
                   <td>{r.timestamp ? new Date(r.timestamp).toLocaleString() : '—'}</td>
                   <td>{r.account || '—'}</td>
-                  <td>{r.product || '—'}</td>
-                  <td>{r.value || '—'}</td>
+                  <td>{Array.isArray(r.products) && r.products.length ? r.products.join(', ') : '—'}</td>
                   <td>{r.action || '—'}</td>
-                  <td>{r.quantity ?? '—'}</td>
-                  <td>{formatPeso(r.price_each)}</td>
-                  <td>{r.old_stock ?? '—'}</td>
-                  <td>{r.new_stock ?? '—'}</td>
-                  <td>{formatPeso(r.sales)}</td>
+                  <td>{formatPeso(r.totalSales)}</td>
                   <td>{r.transact_by || '—'}</td>
                 </tr>
               ))}
 
-              {/* 📌 Show message if no logs found */}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan="11" className="text-center text-muted p-3">
+                  <td colSpan="6" className="text-center text-muted p-3">
                     No logs found
                   </td>
                 </tr>
