@@ -16,7 +16,9 @@ export default function App() {
           className="d-flex flex-column p-3"
           style={{ width: '220px', backgroundColor: '#fff', borderRight: '1px solid #dee2e6' }}
         >
-          <h5 className="mb-4">GAG Inventory</h5>
+          <h5 className="mb-1">GAG Inventory</h5>
+<span className="small mb-3" style={{ color: '#6c757d' }}>Wavyu bibi</span>
+
           <ul className="nav flex-column gap-2">
             {['inventory', 'transaction', 'logs'].map((p) => (
               <li className="nav-item" key={p}>
