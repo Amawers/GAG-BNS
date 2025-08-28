@@ -443,7 +443,15 @@ export default function InventoryTable() {
 													)}
 											</td>
 
-											<td>{r.available}</td>
+<td
+  style={{
+    color: r.available <= 0 ? "red" : "inherit",
+    fontWeight: r.available <= 0 ? "bold" : "normal",
+    textShadow: r.available <= 0 ? "0 0 5px rgba(255,0,0,0.7)" : "none",
+  }}
+>
+  {r.available <= 0 ? 0 : r.available}
+</td>
 											<td>
 												₱
 												{Number(
