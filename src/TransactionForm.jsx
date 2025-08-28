@@ -116,41 +116,92 @@ export default function TransactionForm() {
   }
 
   // Make reservation
-  async function makeReservation(e) {
-    e.preventDefault();
-    if (!resForm.inventory_id || !resForm.client_name || !resForm.quantity)
-      return alert('Fill all fields');
+// Make reservation
+async function makeReservation(e) {
+  e.preventDefault();
 
-    const { error } = await supabase.rpc('reserve_product', {
-      p_inventory_id: resForm.inventory_id,
-      p_client_name: resForm.client_name,
-      p_quantity: resForm.quantity,
-      p_date_pickup: resForm.date_pickup || null   // store as string
-    });
-
-    if (error) return alert(error.message);
-    alert('Reservation added');
-    setResForm({
-      inventory_id: '',
-      client_name: '',
-      quantity: 1,
-      date_reserved: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Manila" }).slice(0,16),
-      date_pickup: ''
-    });
-    fetchReservations();
+  if (!resForm.inventory_id || !resForm.client_name || !resForm.quantity) {
+    return alert('Fill all fields');
   }
 
-  async function confirmReservation(id) {
-    const { error } = await supabase.rpc('confirm_reservation', { p_reservation_id: id });
-    if (error) return alert(error.message);
-    fetchReservations();
-  }
+  const { error } = await supabase.rpc('reserve_product', {
+    p_inventory_id: resForm.inventory_id,
+    p_client_name: resForm.client_name,
+    p_quantity: resForm.quantity,
+    p_date_pickup: resForm.date_pickup || null
+  });
 
-  async function cancelReservation(id) {
-    const { error } = await supabase.rpc('cancel_reservation', { p_reservation_id: id });
-    if (error) return alert(error.message);
-    fetchReservations();
-  }
+  if (error) return alert(error.message);
+
+  alert('Reservation added');
+
+  // Reset reservation form
+  setResForm({
+    inventory_id: '',
+    client_name: '',
+    quantity: 1,
+    date_reserved: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Manila" }).slice(0,16),
+    date_pickup: ''
+  });
+
+  fetchReservations();
+}
+
+
+// Confirm reservation
+async function confirmReservation(id) {
+  const { error } = await supabase.rpc('confirm_reservation', { p_reservation_id: id });
+  if (error) return alert(error.message);
+
+  const reservation = reservations.find(r => r.id === id);
+  const invItem = inventory.find(i => i.id === reservation.inventory_id);
+
+  const oldStock = invItem?.stocks || 0;
+  const newStock = oldStock - reservation.quantity;
+
+  // Optionally, update inventory stock in frontend after confirm
+  invItem.stocks = newStock;
+
+  await supabase.from('logs').insert([{
+    account: invItem?.account || null,
+    product: invItem?.product || null,
+    action: 'Confirmed & bought',
+    quantity: reservation.quantity,
+    price_each: invItem?.price_each || 0,
+    old_stock: oldStock,
+    new_stock: newStock,
+    sales: (reservation.quantity * (invItem?.price_each || 0)),
+    transact_by: 'System',
+    timestamp: new Date().toISOString()
+  }]);
+
+  fetchReservations();
+}
+
+// Cancel reservation
+async function cancelReservation(id) {
+  const { error } = await supabase.rpc('cancel_reservation', { p_reservation_id: id });
+  if (error) return alert(error.message);
+
+  const reservation = reservations.find(r => r.id === id);
+  const invItem = inventory.find(i => i.id === reservation.inventory_id);
+
+  await supabase.from('logs').insert([{
+    account: invItem?.account || null,
+    product: invItem?.product || null,
+    action: 'Cancelled reservation',
+    quantity: reservation.quantity,
+    price_each: invItem?.price_each || 0,
+    old_stock: invItem?.stocks || 0,
+    new_stock: invItem?.stocks || 0,
+    sales: 0,
+    transact_by: 'System',
+    timestamp: new Date().toISOString()
+  }]);
+
+  fetchReservations();
+}
+
 
   // 🔹 Calculate total
   const total = form.items.reduce((sum, i) => {
@@ -286,12 +337,16 @@ export default function TransactionForm() {
             <div className="col-md">
               <label>Quantity</label>
               <input
-                type="number"
-                className="form-control"
-                min="1"
-                value={resForm.quantity}
-                onChange={e => setResForm({ ...resForm, quantity: Number(e.target.value) })}
-              />
+  type="number"
+  className="form-control"
+  min="1"
+  value={resForm.quantity}
+  onChange={e => setResForm({ ...resForm, quantity: e.target.value })}
+  onBlur={e => {
+    if (!e.target.value) setResForm({ ...resForm, quantity: 1 });
+  }}
+/>
+
             </div>
             <div className="col-md">
               <label>Date Reserved</label>
