@@ -165,7 +165,7 @@ async function confirmReservation(id) {
   await supabase.from('logs').insert([{
     account: invItem?.account || null,
     product: invItem?.product || null,
-    action: 'Confirmed & bought',
+    action: 'Confirmed & sold',
     quantity: reservation.quantity,
     price_each: invItem?.price_each || 0,
     old_stock: oldStock,
