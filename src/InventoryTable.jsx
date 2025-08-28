@@ -179,11 +179,12 @@ export default function InventoryTable() {
 
 	const [search, setSearch] = useState("");
 	const filteredRows = rows.filter(
-		(r) =>
-			r.account.toLowerCase().includes(search.toLowerCase()) ||
-			r.product.toLowerCase().includes(search.toLowerCase()) ||
-			r.inserted_by.toLowerCase().includes(search.toLowerCase())
-	);
+  (r) =>
+    normalize(r.account).includes(normalize(search)) ||
+    normalize(r.product).includes(normalize(search)) ||
+    normalize(r.inserted_by).includes(normalize(search))
+);
+
 
 	return (
 		<div>
