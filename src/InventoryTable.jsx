@@ -107,7 +107,6 @@ const [showTooltip, setShowTooltip] = useState(null);
     if(invErr || !inv) return alert('Inventory not found');
 
     await supabase.from('transactions').delete().eq('account', inv.account).eq('product', inv.product);
-    await supabase.from('logs').delete().eq('account', inv.account).eq('product', inv.product);
     const { error: delErr } = await supabase.from('inventory').delete().eq('id', id);
     await supabase.from('products').delete().eq('name', inv.product);
 

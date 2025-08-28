@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 
 export default function LogsTable() {
   const [rows, setRows] = useState([]);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -10,17 +11,31 @@ export default function LogsTable() {
         .from('logs')
         .select('*')
         .order('timestamp', { ascending: false })
-        .limit(1000); // fetch more to group
+        .limit(1000);
 
       if (error) return;
 
-      // Group logs by transaction reference: timestamp + account + action + user
       const grouped = {};
       data.forEach(log => {
-        const key = `${log.timestamp}|${log.account}|${log.action}|${log.transact_by}`;
-        if (!grouped[key]) grouped[key] = { ...log, products: [], totalSales: 0 };
-        if (log.product) grouped[key].products.push(log.product); // safe push
-        grouped[key].totalSales += Number(log.sales) || 0;
+        if (!log.timestamp) return;
+        const tsKey = new Date(log.timestamp).toISOString();
+
+        if (!grouped[tsKey]) grouped[tsKey] = {
+          timestamp: log.timestamp,
+          action: log.action,
+          transact_by: log.transact_by || '—',
+          products: [],
+          totalSales: 0
+        };
+
+        // Only store product and account separately
+        grouped[tsKey].products.push({
+          product: log.product || '—', // product name only
+          account: log.account || '—', // account name only
+          sales: Number(log.sales) || 0
+        });
+
+        grouped[tsKey].totalSales += Number(log.sales) || 0;
       });
 
       setRows(Object.values(grouped));
@@ -29,7 +44,7 @@ export default function LogsTable() {
     load();
   }, []);
 
-  const formatPeso = (val) => val != null ? `₱${Number(val).toLocaleString()}` : '—';
+  const formatPeso = val => val != null ? `₱${Number(val).toLocaleString()}` : '—';
 
   return (
     <div>
@@ -41,30 +56,69 @@ export default function LogsTable() {
             <thead className="table-light">
               <tr>
                 <th>When</th>
-                <th>Account</th>
-                <th>Product(s)</th>
+                <th>
+                  Product(s) <span style={{ fontSize: "12px", color: "gray" }}>hover item</span>
+                </th>
                 <th>Action</th>
                 <th>Sales</th>
                 <th>By</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r, i) => (
+              {rows.length > 0 ? rows.map((r, i) => (
                 <tr key={i}>
-                  <td>{r.timestamp ? new Date(r.timestamp).toLocaleString() : '—'}</td>
-                  <td>{r.account || '—'}</td>
-                  <td>{Array.isArray(r.products) && r.products.length ? r.products.join(', ') : '—'}</td>
+                  <td>{r.timestamp ? new Date(r.timestamp).toLocaleString("en-PH") : '—'}</td>
+                  <td style={{ position: 'relative' }}>
+                    {Array.isArray(r.products) && r.products.length > 0 ? (
+                      <span
+                        style={{
+                          cursor: 'pointer',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          transition: 'all 0.2s ease',
+                          display: 'inline-block',
+                          backgroundColor: hoveredIndex === i ? '#f0f0f0' : 'transparent',
+                          color: hoveredIndex === i ? '#007bff' : 'inherit',
+                          fontWeight: hoveredIndex === i ? '600' : 'normal',
+                          boxShadow: hoveredIndex === i ? '0 4px 10px rgba(0,0,0,0.1)' : 'none',
+                          transform: hoveredIndex === i ? 'translateY(-2px)' : 'none'
+                        }}
+                        onMouseEnter={() => setHoveredIndex(i)}
+                        onMouseLeave={() => setHoveredIndex(null)}
+                      >
+                        {/* Only product names */}
+                        {r.products.map(p => p.product).join(', ')}
+                      </span>
+                    ) : '—'}
+                    {hoveredIndex === i && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: '0',
+                        zIndex: 10,
+                        backgroundColor: '#fff',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
+                        marginTop: '6px',
+                        minWidth: '200px'
+                      }}>
+                        {r.products.map((p, idx) => (
+                          <div key={idx} style={{ marginBottom: '6px', fontSize: '14px' }}>
+                            <strong>{p.product}</strong>
+                            <div style={{ color: 'gray', fontSize: '13px' }}>{p.account}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
                   <td>{r.action || '—'}</td>
                   <td>{formatPeso(r.totalSales)}</td>
                   <td>{r.transact_by || '—'}</td>
                 </tr>
-              ))}
-
-              {rows.length === 0 && (
+              )) : (
                 <tr>
-                  <td colSpan="6" className="text-center text-muted p-3">
-                    No logs found
-                  </td>
+                  <td colSpan="5" className="text-center text-muted p-3">No logs found</td>
                 </tr>
               )}
             </tbody>

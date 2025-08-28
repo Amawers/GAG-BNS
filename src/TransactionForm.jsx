@@ -16,21 +16,22 @@ export default function TransactionForm() {
   const [reservations, setReservations] = useState([]);
   const [resAccount, setResAccount] = useState('');
   const [resProducts, setResProducts] = useState([]);
-// Reservation state
-const [resForm, setResForm] = useState({
-  inventory_id: '',
-  client_name: '',
-  quantity: 1,
-  date_reserved: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Manila" }).slice(0,16),
-  date_pickup: ''
-});
+  // Reservation state
+  const [resForm, setResForm] = useState({
+    inventory_id: '',
+    client_name: '',
+    quantity: 1,
+    date_reserved: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Manila" }).slice(0,16),
+    date_pickup: ''
+  });
 
   useEffect(() => { fetchAccounts(); fetchReservations(); }, []);
 
   async function fetchAccounts() {
-    const { data } = await supabase.from('inventory').select('id, account, product, price_each');
+    const { data } = await supabase.from('inventory').select('id, account, product, price_each, stocks');
     if (!data) return;
 
+    // unique account names
     const uniqueAccounts = [...new Set(data.map(i => i.account))];
     setAccounts(uniqueAccounts.map((name, idx) => ({ id: idx, name })));
     setInventory(data);
@@ -55,6 +56,7 @@ const [resForm, setResForm] = useState({
 
   function updateItem(index, key, value) {
     const newItems = [...form.items];
+
     if (key === 'quantity') {
       newItems[index][key] = value === '' ? '' : Number(value);
     } else {
@@ -62,8 +64,8 @@ const [resForm, setResForm] = useState({
     }
 
     if (key === 'product_id') {
-      const productName = products[value]?.product;
-      const invItem = inventory.find(i => i.product === productName);
+      // value is inventory id (string), find inventory item
+      const invItem = inventory.find(i => i.id === Number(value));
       newItems[index].price_each = invItem ? Number(invItem.price_each) : 0;
     }
 
@@ -78,17 +80,15 @@ const [resForm, setResForm] = useState({
 
   async function submit(e) {
     e.preventDefault();
-    if (!form.account_id || !form.items.length || form.items.some(i => !i.product_id || !i.quantity))
+    // validate: each item must have product_id and quantity
+    if (!form.items.length || form.items.some(i => !i.product_id || !i.quantity))
       return alert('Fill all fields');
 
-    const accountName = accounts[form.account_id]?.name;
-    if (!accountName) return alert('Invalid account');
-
     const payload = form.items.map(i => {
-      const productName = products[i.product_id]?.product;
+      const invItem = inventory.find(inv => inv.id === Number(i.product_id));
       return {
-        account: accountName,
-        product: productName,
+        account: invItem?.account || null,
+        product: invItem?.product || null,
         action: form.action,
         quantity: i.quantity,
         price_each: i.price_each,
@@ -115,30 +115,30 @@ const [resForm, setResForm] = useState({
     setReservations(data || []);
   }
 
-// Make reservation
-async function makeReservation(e) {
-  e.preventDefault();
-  if (!resForm.inventory_id || !resForm.client_name || !resForm.quantity)
-    return alert('Fill all fields');
+  // Make reservation
+  async function makeReservation(e) {
+    e.preventDefault();
+    if (!resForm.inventory_id || !resForm.client_name || !resForm.quantity)
+      return alert('Fill all fields');
 
-  const { error } = await supabase.rpc('reserve_product', {
-    p_inventory_id: resForm.inventory_id,
-    p_client_name: resForm.client_name,
-    p_quantity: resForm.quantity,
-  p_date_pickup: resForm.date_pickup || null   // store as string
-  });
+    const { error } = await supabase.rpc('reserve_product', {
+      p_inventory_id: resForm.inventory_id,
+      p_client_name: resForm.client_name,
+      p_quantity: resForm.quantity,
+      p_date_pickup: resForm.date_pickup || null   // store as string
+    });
 
-  if (error) return alert(error.message);
-  alert('Reservation added');
-  setResForm({
-    inventory_id: '',
-    client_name: '',
-    quantity: 1,
-    date_reserved: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Manila" }).slice(0,16),
-    date_pickup: ''
-  });
-  fetchReservations();
-}
+    if (error) return alert(error.message);
+    alert('Reservation added');
+    setResForm({
+      inventory_id: '',
+      client_name: '',
+      quantity: 1,
+      date_reserved: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Manila" }).slice(0,16),
+      date_pickup: ''
+    });
+    fetchReservations();
+  }
 
   async function confirmReservation(id) {
     const { error } = await supabase.rpc('confirm_reservation', { p_reservation_id: id });
@@ -165,35 +165,31 @@ async function makeReservation(e) {
       <div className="card-body">
         {/* 🔹 Transaction Form */}
         <form onSubmit={submit}>
-          <div className="mb-3">
-            <label>Account</label>
-            <select
-              className="form-select"
-              value={form.account_id}
-              onChange={e => {
-                setForm({ ...form, account_id: e.target.value });
-                const accountName = accounts[e.target.value]?.name;
-                fetchProducts(accountName);
-              }}
-            >
-              <option value="">-- choose --</option>
-              {accounts.map((a, idx) => <option key={idx} value={idx}>{a.name}</option>)}
-            </select>
-          </div>
-
+          {/* NOTE: global Account selector removed — each item has grouped product dropdown */}
           {form.items.map((item, idx) => (
             <div key={idx} className="row g-2 mb-2 align-items-end">
               <div className="col-md">
-                <label>Product</label>
+                <label>Product (Account → Product)</label>
                 <select
                   className="form-select"
                   value={item.product_id}
                   onChange={e => updateItem(idx, 'product_id', e.target.value)}
                 >
                   <option value="">-- choose --</option>
-                  {products.map((p, i) => <option key={i} value={i}>{p.product}</option>)}
+                  {accounts.map((a) => (
+                    <optgroup key={a.name} label={a.name}>
+                      {inventory
+                        .filter(inv => inv.account === a.name)
+                        .map(inv => (
+                          <option key={inv.id} value={inv.id}>
+                            {inv.product}
+                          </option>
+                        ))}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
+
               <div className="col-md">
                 <label>Quantity</label>
                 <input
@@ -204,6 +200,7 @@ async function makeReservation(e) {
                   onChange={e => updateItem(idx, 'quantity', e.target.value)}
                 />
               </div>
+
               <div className="col-md">
                 <label>Cost</label>
                 <input
@@ -213,6 +210,7 @@ async function makeReservation(e) {
                   disabled
                 />
               </div>
+
               <div className="col-md-auto">
                 <button type="button" className="btn btn-danger" onClick={() => removeItem(idx)}>Remove</button>
               </div>
@@ -296,26 +294,23 @@ async function makeReservation(e) {
               />
             </div>
             <div className="col-md">
-  <label>Date Reserved</label>
-  <input
-    type="datetime-local"
-    className="form-control"
-    value={resForm.date_reserved}
-    disabled
-  />
-</div>
-<div className="col-md">
-  <label>Date Pickup</label>
-  <input
-    type="datetime-local"
-    className="form-control"
-    value={resForm.date_pickup}
-    onChange={e => setResForm({ ...resForm, date_pickup: e.target.value })}
-  />
-</div>
-
-
-
+              <label>Date Reserved</label>
+              <input
+                type="datetime-local"
+                className="form-control"
+                value={resForm.date_reserved}
+                disabled
+              />
+            </div>
+            <div className="col-md">
+              <label>Date Pickup</label>
+              <input
+                type="datetime-local"
+                className="form-control"
+                value={resForm.date_pickup}
+                onChange={e => setResForm({ ...resForm, date_pickup: e.target.value })}
+              />
+            </div>
 
             <div className="col-md-auto">
               <button type="submit" className="btn btn-success">Reserve</button>
@@ -330,7 +325,7 @@ async function makeReservation(e) {
               <th>Product</th>
               <th>Qty</th>
               <th>Date Reserved</th>
-<th>Date Pickup</th>
+              <th>Date Pickup</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -341,33 +336,31 @@ async function makeReservation(e) {
                 <td>{r.client_name}</td>
                 <td>{inventory.find(i => i.id === r.inventory_id)?.product || '-'}</td>
                 <td>{r.quantity}</td>
-<td>
-  {r.date_reserved
-    ? new Date(r.date_reserved).toLocaleString("en-PH", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    : "-"}
-</td>
+                <td>
+                  {r.date_reserved
+                    ? new Date(r.date_reserved).toLocaleString("en-PH", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })
+                    : "-"}
+                </td>
 
-<td>
-  {r.date_pickup
-    ? new Date(r.date_pickup).toLocaleString("en-PH", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    : "-"}
-</td>
-
-
+                <td>
+                  {r.date_pickup
+                    ? new Date(r.date_pickup).toLocaleString("en-PH", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })
+                    : "-"}
+                </td>
 
                 <td>{r.status}</td>
                 <td>
