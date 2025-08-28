@@ -16,11 +16,14 @@ export default function TransactionForm() {
   const [reservations, setReservations] = useState([]);
   const [resAccount, setResAccount] = useState('');
   const [resProducts, setResProducts] = useState([]);
-  const [resForm, setResForm] = useState({
-    inventory_id: '',
-    client_name: '',
-    quantity: 1
-  });
+// Reservation state
+const [resForm, setResForm] = useState({
+  inventory_id: '',
+  client_name: '',
+  quantity: 1,
+  date_reserved: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Manila" }).slice(0,16),
+  date_pickup: ''
+});
 
   useEffect(() => { fetchAccounts(); fetchReservations(); }, []);
 
@@ -112,22 +115,30 @@ export default function TransactionForm() {
     setReservations(data || []);
   }
 
-  async function makeReservation(e) {
-    e.preventDefault();
-    if (!resForm.inventory_id || !resForm.client_name || !resForm.quantity)
-      return alert('Fill all fields');
+// Make reservation
+async function makeReservation(e) {
+  e.preventDefault();
+  if (!resForm.inventory_id || !resForm.client_name || !resForm.quantity)
+    return alert('Fill all fields');
 
-    const { error } = await supabase.rpc('reserve_product', {
-      p_inventory_id: resForm.inventory_id,
-      p_client_name: resForm.client_name,
-      p_quantity: resForm.quantity
-    });
+  const { error } = await supabase.rpc('reserve_product', {
+    p_inventory_id: resForm.inventory_id,
+    p_client_name: resForm.client_name,
+    p_quantity: resForm.quantity,
+  p_date_pickup: resForm.date_pickup || null   // store as string
+  });
 
-    if (error) return alert(error.message);
-    alert('Reservation added');
-    setResForm({ inventory_id: '', client_name: '', quantity: 1 });
-    fetchReservations();
-  }
+  if (error) return alert(error.message);
+  alert('Reservation added');
+  setResForm({
+    inventory_id: '',
+    client_name: '',
+    quantity: 1,
+    date_reserved: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Manila" }).slice(0,16),
+    date_pickup: ''
+  });
+  fetchReservations();
+}
 
   async function confirmReservation(id) {
     const { error } = await supabase.rpc('confirm_reservation', { p_reservation_id: id });
@@ -284,6 +295,28 @@ export default function TransactionForm() {
                 onChange={e => setResForm({ ...resForm, quantity: Number(e.target.value) })}
               />
             </div>
+            <div className="col-md">
+  <label>Date Reserved</label>
+  <input
+    type="datetime-local"
+    className="form-control"
+    value={resForm.date_reserved}
+    disabled
+  />
+</div>
+<div className="col-md">
+  <label>Date Pickup</label>
+  <input
+    type="datetime-local"
+    className="form-control"
+    value={resForm.date_pickup}
+    onChange={e => setResForm({ ...resForm, date_pickup: e.target.value })}
+  />
+</div>
+
+
+
+
             <div className="col-md-auto">
               <button type="submit" className="btn btn-success">Reserve</button>
             </div>
@@ -296,6 +329,8 @@ export default function TransactionForm() {
               <th>Client</th>
               <th>Product</th>
               <th>Qty</th>
+              <th>Date Reserved</th>
+<th>Date Pickup</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -306,6 +341,34 @@ export default function TransactionForm() {
                 <td>{r.client_name}</td>
                 <td>{inventory.find(i => i.id === r.inventory_id)?.product || '-'}</td>
                 <td>{r.quantity}</td>
+<td>
+  {r.date_reserved
+    ? new Date(r.date_reserved).toLocaleString("en-PH", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+    : "-"}
+</td>
+
+<td>
+  {r.date_pickup
+    ? new Date(r.date_pickup).toLocaleString("en-PH", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+    : "-"}
+</td>
+
+
+
                 <td>{r.status}</td>
                 <td>
                   {r.status === 'pending' && (
