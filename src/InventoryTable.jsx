@@ -176,14 +176,23 @@ export default function InventoryTable() {
 		if (delErr) return alert("Error deleting record");
 		load();
 	}
+const [selectedAccount, setSelectedAccount] = useState("");
 
+// unique accounts
+const accounts = [...new Set(rows.map(r => r.account))];
 	const [search, setSearch] = useState("");
-	const filteredRows = rows.filter(
-  (r) =>
+const filteredRows = rows.filter((r) => {
+  const matchesSearch =
     normalize(r.account).includes(normalize(search)) ||
     normalize(r.product).includes(normalize(search)) ||
-    normalize(r.inserted_by).includes(normalize(search))
-);
+    normalize(r.inserted_by).includes(normalize(search));
+
+  const matchesAccount = selectedAccount
+    ? r.account === selectedAccount
+    : true;
+
+  return matchesSearch && matchesAccount;
+});
 
 
 	return (
@@ -191,7 +200,8 @@ export default function InventoryTable() {
 			<h5 className="mb-3">
 				Inventory{" "}
 				<div style={{ fontSize: "12px", color: "gray" }}>
-					form below will either insert or update inventory record (product + account names bases)
+					form below will either insert or update inventory record
+					(product + account names bases)
 				</div>
 			</h5>
 
@@ -284,6 +294,24 @@ export default function InventoryTable() {
 					</form>
 				</div>
 			</div>
+<div className="mb-2 d-flex gap-2 flex-wrap">
+  <button
+    className={`btn btn-sm ${selectedAccount === "" ? "btn-primary" : "btn-outline-dark"}`}
+    onClick={() => setSelectedAccount("")}
+  >
+    All
+  </button>
+  {accounts.map((acc) => (
+    <button
+      key={acc}
+      className={`btn btn-sm ${selectedAccount === acc ? "btn-primary" : "btn-outline-dark"}`}
+      onClick={() => setSelectedAccount(acc)}
+    >
+      {acc}
+    </button>
+  ))}
+</div>
+
 
 			<div className="mb-2">
 				<input
@@ -298,10 +326,10 @@ export default function InventoryTable() {
 			<div className="card shadow-sm">
 				<div
 					className="card-body p-0"
-					style={{ maxHeight: "415px", overflowY: "auto" }}
+					style={{ maxHeight: "365px", overflowY: "auto" }}
 				>
 					<table className="table table-striped table-hover mb-0">
-						<thead className="table-light">
+<thead className="table-light" style={{ position: "sticky", top: 0, zIndex: 1 }}>
 							<tr>
 								<th>Account</th>
 								<th>Product</th>
@@ -443,15 +471,26 @@ export default function InventoryTable() {
 													)}
 											</td>
 
-<td
-  style={{
-    color: r.available <= 0 ? "red" : "inherit",
-    fontWeight: r.available <= 0 ? "bold" : "normal",
-    textShadow: r.available <= 0 ? "0 0 5px rgba(255,0,0,0.7)" : "none",
-  }}
->
-  {r.available <= 0 ? 0 : r.available}
-</td>
+											<td
+												style={{
+													color:
+														r.available <= 0
+															? "red"
+															: "inherit",
+													fontWeight:
+														r.available <= 0
+															? "bold"
+															: "normal",
+													textShadow:
+														r.available <= 0
+															? "0 0 5px rgba(255,0,0,0.7)"
+															: "none",
+												}}
+											>
+												{r.available <= 0
+													? 0
+													: r.available}
+											</td>
 											<td>
 												₱
 												{Number(
