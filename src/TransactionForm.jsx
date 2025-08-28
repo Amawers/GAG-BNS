@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function TransactionForm() {
+
+
   const [accounts, setAccounts] = useState([]);
   const [products, setProducts] = useState([]);
   const [inventory, setInventory] = useState([]);
@@ -212,6 +214,12 @@ async function cancelReservation(id) {
     return sum + qty * price;
   }, 0);
 
+    const disableSubmit = form.items.some(item => {
+  const invItem = inventory.find(i => i.id === Number(item.product_id));
+  const stocksLeft = invItem?.stocks || 0;
+  return !item.product_id || item.quantity > stocksLeft;
+});
+
   return (
     <div className="card shadow-sm">
       <div className="card-header bg-white border-0"><h5>New Transaction</h5></div>
@@ -244,15 +252,34 @@ async function cancelReservation(id) {
               </div>
 
               <div className="col-md">
-                <label>Quantity</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  min="1"
-                  value={item.quantity}
-                  onChange={e => updateItem(idx, 'quantity', e.target.value)}
-                />
-              </div>
+  {(() => {
+    const invItem = inventory.find(i => i.id === Number(item.product_id));
+    const stocksLeft = invItem?.stocks || 0;
+    const overStock = item.quantity > stocksLeft;
+
+    return (
+      <>
+        <label>Quantity</label>
+        <div className="d-flex align-items-center gap-2">
+          <input
+            type="number"
+            className={`form-control ${overStock ? 'is-invalid' : ''}`}
+            min="1"
+            value={item.quantity}
+            onChange={e => updateItem(idx, 'quantity', e.target.value)}
+            disabled={!item.product_id} // disable until a product is selected
+            style={{ width: '100px' }}
+          />
+          <small className={`text-${overStock ? 'danger' : 'muted'}`}>
+            Avail: {stocksLeft} {overStock && '- Exceeds stock!'}
+          </small>
+        </div>
+      </>
+    );
+  })()}
+</div>
+
+
 
               <div className="col-md">
                 <label>Cost</label>
@@ -288,8 +315,13 @@ async function cancelReservation(id) {
             <strong>Total Cost: ₱{total.toLocaleString()}</strong>
           </div>
 
-          <button type="submit" className="btn btn-primary w-100">Submit</button>
-        </form>
+<button
+  type="submit"
+  className={`w-100 btn cursor-pointer ${disableSubmit ? 'btn-secondary' : 'btn-primary'}`}
+  disabled={disableSubmit}
+>
+  Submit
+</button>       </form>
 
         {/* 🔹 Reservation Section */}
 <hr className="my-4" />
