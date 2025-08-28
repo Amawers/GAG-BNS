@@ -37,6 +37,8 @@ export default function TransactionForm() {
     setInventory(data);
   }
 
+  
+
   async function fetchProducts(accountName) {
     if (!accountName) return setProducts([]);
     const prods = inventory.filter(i => i.account === accountName);
@@ -233,7 +235,7 @@ async function cancelReservation(id) {
                         .filter(inv => inv.account === a.name)
                         .map(inv => (
                           <option key={inv.id} value={inv.id}>
-                            {inv.product}
+                            {a.name} → {inv.product}
                           </option>
                         ))}
                     </optgroup>
