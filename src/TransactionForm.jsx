@@ -220,6 +220,24 @@ async function cancelReservation(id) {
   return !item.product_id || item.quantity > stocksLeft;
 });
 
+function copyTransactionText() {
+  if (!form.items.length) return alert('No items to copy');
+
+  let text = form.items.map(i => {
+    const invItem = inventory.find(inv => inv.id === Number(i.product_id));
+    const productName = invItem?.product || 'Unknown';
+    const accountName = invItem?.account || 'Unknown';
+    return `₱${(i.quantity * i.price_each).toFixed(2)}  ${productName}  ${i.quantity}pc/s → ${accountName}`;
+  }).join('\n');
+
+  text += `\n\nTotal Cost: ₱${total.toLocaleString()}`;
+
+  navigator.clipboard.writeText(text)
+    .then(() => alert('Transaction copied to clipboard'))
+    .catch(() => alert('Failed to copy'));
+}
+
+
   return (
     <div className="card shadow-sm">
       <div className="card-header bg-white border-0"><h5>New Transaction</h5></div>
@@ -314,7 +332,13 @@ async function cancelReservation(id) {
           <div className="mb-3 p-2 bg-light border rounded text-start">
             <strong>Total Cost: ₱{total.toLocaleString()}</strong>
           </div>
-
+<button
+  type="button"
+  className="btn btn-info w-100 mb-2"
+  onClick={copyTransactionText}
+>
+  Copy Transaction
+</button>
 <button
   type="submit"
   className={`w-100 btn cursor-pointer ${disableSubmit ? 'btn-secondary' : 'btn-primary'}`}
