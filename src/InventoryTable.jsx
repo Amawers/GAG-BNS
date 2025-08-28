@@ -10,10 +10,30 @@ export default function InventoryTable() {
     price_each: '',
     inserted_by: ''
   });
+  // const [reservations, setReservations] = useState([]);
+const [showTooltip, setShowTooltip] = useState(null);
 
   async function load() {
-    const { data, error } = await supabase.from('inventory').select('*');
-    if (!error) setRows(data || []);
+    const { data: inv, error: invErr } = await supabase.from('inventory').select('*');
+    const { data: res, error: resErr } = await supabase.from('reservations').select('*');
+
+    if (!invErr && inv) {
+      const computed = inv.map(item => {
+        const reservedQty = res
+          ?.filter(r => r.inventory_id === item.id && r.status === 'pending')
+          .reduce((sum, r) => sum + r.quantity, 0) || 0;
+
+        return {
+          ...item,
+          reserved: reservedQty,
+          available: item.stocks - item.sold_stocks - reservedQty,
+          clients: res?.filter(r => r.inventory_id === item.id && r.status === 'pending') || []
+        };
+      });
+
+      setRows(computed);
+    }
+    if (!resErr && res) (res);
   }
 
   useEffect(() => { load(); }, []);
@@ -163,6 +183,11 @@ export default function InventoryTable() {
                 <th>Account</th>
                 <th>Product</th>
                 <th>Stocks</th>
+<th style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+  <div style={{ fontSize: "12px", color: "gray" }}>hover item</div>
+  <div>Reserved</div>
+</th>
+                <th>Available</th>
                 <th>Price</th>
                 <th>Sold</th>
                 <th>Sales</th>
@@ -179,6 +204,8 @@ export default function InventoryTable() {
                       <td>{r.account}</td>
                       <td>{r.product}</td>
                       <td>{r.stocks}</td>
+                      <td>{r.reserved}</td>
+                      <td>{r.available}</td>
                       <td>
                         <div className="input-group input-group-sm">
                           <span className="input-group-text">₱</span>
@@ -204,6 +231,28 @@ export default function InventoryTable() {
                       <td>{r.account}</td>
                       <td>{r.product}</td>
                       <td>{r.stocks}</td>
+                      <td
+  className="position-relative"
+  onMouseEnter={() => setShowTooltip(r.id)}
+  onMouseLeave={() => setShowTooltip(null)}
+>
+  {r.reserved}
+
+  {r.clients.length > 0 && showTooltip === r.id && (
+    <div
+      className="position-absolute bg-white border p-2 rounded shadow small"
+      style={{ top: '100%', left: 0, whiteSpace: 'nowrap', zIndex: 10 }}
+    >
+      {r.clients.map(c => (
+        <div key={c.id}>
+          {c.client_name} - {c.quantity}
+        </div>
+      ))}
+    </div>
+  )}
+</td>
+
+                      <td>{r.available}</td>
                       <td>₱{Number(r.price_each).toLocaleString()}</td>
                       <td>{r.sold_stocks}</td>
                       <td>₱{Number(r.sales).toLocaleString()}</td>

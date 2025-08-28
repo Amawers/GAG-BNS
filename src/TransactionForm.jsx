@@ -12,28 +12,38 @@ export default function TransactionForm() {
     transact_by: 'Ekong'
   });
 
-  useEffect(() => { fetchAccounts(); }, []);
+  // 🔹 Reservation states
+  const [reservations, setReservations] = useState([]);
+  const [resAccount, setResAccount] = useState('');
+  const [resProducts, setResProducts] = useState([]);
+  const [resForm, setResForm] = useState({
+    inventory_id: '',
+    client_name: '',
+    quantity: 1
+  });
 
-  // 🔹 Fetch unique accounts from inventory
+  useEffect(() => { fetchAccounts(); fetchReservations(); }, []);
+
   async function fetchAccounts() {
-    const { data } = await supabase
-      .from('inventory')
-      .select('account');
+    const { data } = await supabase.from('inventory').select('id, account, product, price_each');
+    if (!data) return;
 
     const uniqueAccounts = [...new Set(data.map(i => i.account))];
     setAccounts(uniqueAccounts.map((name, idx) => ({ id: idx, name })));
+    setInventory(data);
   }
 
-  // 🔹 Fetch products for selected account
   async function fetchProducts(accountName) {
     if (!accountName) return setProducts([]);
-    const { data: prods } = await supabase
-      .from('inventory')
-      .select('product, price_each')
-      .eq('account', accountName);
-
+    const prods = inventory.filter(i => i.account === accountName);
     setProducts(prods || []);
-    setInventory(prods || []);
+  }
+
+  // 🔹 For reservation account filtering
+  function fetchReservationProducts(accountName) {
+    if (!accountName) return setResProducts([]);
+    const prods = inventory.filter(i => i.account === accountName);
+    setResProducts(prods || []);
   }
 
   function addItem() {
@@ -48,7 +58,6 @@ export default function TransactionForm() {
       newItems[index][key] = value;
     }
 
-    // Auto-fill price_each from inventory
     if (key === 'product_id') {
       const productName = products[value]?.product;
       const invItem = inventory.find(i => i.product === productName);
@@ -97,7 +106,42 @@ export default function TransactionForm() {
     fetchAccounts();
   }
 
-  // 🔹 Calculate total cost
+  // 🔹 Reservation Handlers
+  async function fetchReservations() {
+    const { data } = await supabase.from('reservations').select('*');
+    setReservations(data || []);
+  }
+
+  async function makeReservation(e) {
+    e.preventDefault();
+    if (!resForm.inventory_id || !resForm.client_name || !resForm.quantity)
+      return alert('Fill all fields');
+
+    const { error } = await supabase.rpc('reserve_product', {
+      p_inventory_id: resForm.inventory_id,
+      p_client_name: resForm.client_name,
+      p_quantity: resForm.quantity
+    });
+
+    if (error) return alert(error.message);
+    alert('Reservation added');
+    setResForm({ inventory_id: '', client_name: '', quantity: 1 });
+    fetchReservations();
+  }
+
+  async function confirmReservation(id) {
+    const { error } = await supabase.rpc('confirm_reservation', { p_reservation_id: id });
+    if (error) return alert(error.message);
+    fetchReservations();
+  }
+
+  async function cancelReservation(id) {
+    const { error } = await supabase.rpc('cancel_reservation', { p_reservation_id: id });
+    if (error) return alert(error.message);
+    fetchReservations();
+  }
+
+  // 🔹 Calculate total
   const total = form.items.reduce((sum, i) => {
     const qty = Number(i.quantity) || 0;
     const price = Number(i.price_each) || 0;
@@ -108,6 +152,7 @@ export default function TransactionForm() {
     <div className="card shadow-sm">
       <div className="card-header bg-white border-0"><h5>New Transaction</h5></div>
       <div className="card-body">
+        {/* 🔹 Transaction Form */}
         <form onSubmit={submit}>
           <div className="mb-3">
             <label>Account</label>
@@ -183,6 +228,103 @@ export default function TransactionForm() {
 
           <button type="submit" className="btn btn-primary w-100">Submit</button>
         </form>
+
+        {/* 🔹 Reservation Section */}
+        <hr className="my-4" />
+        <h5>Reservations</h5>
+        <form onSubmit={makeReservation} className="mb-3">
+          <div className="row g-2 align-items-end">
+            <div className="col-md">
+              <label>Account</label>
+              <select
+                className="form-select"
+                value={resAccount}
+                onChange={e => {
+                  setResAccount(e.target.value);
+                  const accountName = accounts[e.target.value]?.name;
+                  fetchReservationProducts(accountName);
+                  setResForm({ ...resForm, inventory_id: '' });
+                }}
+              >
+                <option value="">-- choose --</option>
+                {accounts.map((a, idx) => <option key={idx} value={idx}>{a.name}</option>)}
+              </select>
+            </div>
+
+            <div className="col-md">
+              <label>Product</label>
+              <select
+                className="form-select"
+                value={resForm.inventory_id}
+                onChange={e => setResForm({ ...resForm, inventory_id: e.target.value })}
+              >
+                <option value="">-- choose --</option>
+                {resProducts.map(inv => (
+                  <option key={inv.id} value={inv.id}>{inv.product}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-md">
+              <label>Client</label>
+              <input
+                type="text"
+                className="form-control"
+                value={resForm.client_name}
+                onChange={e => setResForm({ ...resForm, client_name: e.target.value })}
+              />
+            </div>
+            <div className="col-md">
+              <label>Quantity</label>
+              <input
+                type="number"
+                className="form-control"
+                min="1"
+                value={resForm.quantity}
+                onChange={e => setResForm({ ...resForm, quantity: Number(e.target.value) })}
+              />
+            </div>
+            <div className="col-md-auto">
+              <button type="submit" className="btn btn-success">Reserve</button>
+            </div>
+          </div>
+        </form>
+
+        <table className="table table-sm">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {reservations.map(r => (
+              <tr key={r.id}>
+                <td>{r.client_name}</td>
+                <td>{inventory.find(i => i.id === r.inventory_id)?.product || '-'}</td>
+                <td>{r.quantity}</td>
+                <td>{r.status}</td>
+                <td>
+                  {r.status === 'pending' && (
+                    <>
+                      <button
+                        className="btn btn-sm btn-primary me-2"
+                        onClick={() => confirmReservation(r.id)}
+                      >Confirm</button>
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => cancelReservation(r.id)}
+                      >Cancel</button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
