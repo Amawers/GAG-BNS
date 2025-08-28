@@ -290,88 +290,88 @@ async function cancelReservation(id) {
         </form>
 
         {/* 🔹 Reservation Section */}
-        <hr className="my-4" />
-        <h5>Reservations</h5>
-        <form onSubmit={makeReservation} className="mb-3">
-          <div className="row g-2 align-items-end">
-            <div className="col-md">
-              <label>Account</label>
-              <select
-                className="form-select"
-                value={resAccount}
-                onChange={e => {
-                  setResAccount(e.target.value);
-                  const accountName = accounts[e.target.value]?.name;
-                  fetchReservationProducts(accountName);
-                  setResForm({ ...resForm, inventory_id: '' });
-                }}
-              >
-                <option value="">-- choose --</option>
-                {accounts.map((a, idx) => <option key={idx} value={idx}>{a.name}</option>)}
-              </select>
-            </div>
+<hr className="my-4" />
+<h5>Reservations</h5>
+<form onSubmit={makeReservation} className="mb-3">
+  <div className="row g-2 align-items-end">
+    {/* Account → Product single dropdown */}
+    <div className="col-md">
+      <label>Product (Account → Product)</label>
+      <select
+        className="form-select"
+        value={resForm.inventory_id}
+        onChange={e => setResForm({ ...resForm, inventory_id: e.target.value })}
+      >
+        <option value="">-- choose --</option>
+        {accounts.map(a => (
+          <optgroup key={a.name} label={a.name}>
+            {inventory
+              .filter(i => i.account === a.name)
+              .map(inv => (
+                <option key={inv.id} value={inv.id}>
+                  {inv.product}
+                </option>
+              ))}
+          </optgroup>
+        ))}
+      </select>
+    </div>
 
-            <div className="col-md">
-              <label>Product</label>
-              <select
-                className="form-select"
-                value={resForm.inventory_id}
-                onChange={e => setResForm({ ...resForm, inventory_id: e.target.value })}
-              >
-                <option value="">-- choose --</option>
-                {resProducts.map(inv => (
-                  <option key={inv.id} value={inv.id}>{inv.product}</option>
-                ))}
-              </select>
-            </div>
+    {/* Client */}
+    <div className="col-md">
+      <label>Client</label>
+      <input
+        type="text"
+        className="form-control"
+        value={resForm.client_name}
+        onChange={e => setResForm({ ...resForm, client_name: e.target.value })}
+      />
+    </div>
 
-            <div className="col-md">
-              <label>Client</label>
-              <input
-                type="text"
-                className="form-control"
-                value={resForm.client_name}
-                onChange={e => setResForm({ ...resForm, client_name: e.target.value })}
-              />
-            </div>
-            <div className="col-md">
-              <label>Quantity</label>
-              <input
-  type="number"
-  className="form-control"
-  min="1"
-  value={resForm.quantity}
-  onChange={e => setResForm({ ...resForm, quantity: e.target.value })}
-  onBlur={e => {
-    if (!e.target.value) setResForm({ ...resForm, quantity: 1 });
-  }}
-/>
+    {/* Quantity */}
+    <div className="col-md">
+      <label>Quantity</label>
+      <input
+        type="number"
+        className="form-control"
+        min="1"
+        value={resForm.quantity}
+        onChange={e => setResForm({ ...resForm, quantity: e.target.value })}
+        onBlur={e => {
+          if (!e.target.value) setResForm({ ...resForm, quantity: 1 });
+        }}
+      />
+    </div>
 
-            </div>
-            <div className="col-md">
-              <label>Date Reserved</label>
-              <input
-                type="datetime-local"
-                className="form-control"
-                value={resForm.date_reserved}
-                disabled
-              />
-            </div>
-            <div className="col-md">
-              <label>Date Pickup</label>
-              <input
-                type="datetime-local"
-                className="form-control"
-                value={resForm.date_pickup}
-                onChange={e => setResForm({ ...resForm, date_pickup: e.target.value })}
-              />
-            </div>
+    {/* Date Reserved */}
+    <div className="col-md">
+      <label>Date Reserved</label>
+      <input
+        type="datetime-local"
+        className="form-control"
+        value={resForm.date_reserved}
+        disabled
+      />
+    </div>
 
-            <div className="col-md-auto">
-              <button type="submit" className="btn btn-success">Reserve</button>
-            </div>
-          </div>
-        </form>
+    {/* Date Pickup */}
+    <div className="col-md">
+      <label>Date Pickup</label>
+      <input
+        type="datetime-local"
+        className="form-control"
+        value={resForm.date_pickup}
+        onChange={e => setResForm({ ...resForm, date_pickup: e.target.value })}
+      />
+    </div>
+
+    <div className="col-md-auto">
+      <button type="submit" className="btn btn-success">Reserve</button>
+    </div>
+  </div>
+</form>
+
+        <div className="card-body p-0" style={{ maxHeight: '500px', overflowY: 'auto' }}>
 
         <table className="table table-sm">
           <thead>
@@ -436,6 +436,7 @@ async function cancelReservation(id) {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

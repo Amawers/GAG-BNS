@@ -175,7 +175,7 @@ const [showTooltip, setShowTooltip] = useState(null);
       </div>
 
       <div className="card shadow-sm">
-        <div className="card-body p-0">
+        <div className="card-body p-0" style={{ maxHeight: '415px', overflowY: 'auto' }}>
           <table className="table table-striped table-hover mb-0">
             <thead className="table-light">
               <tr>

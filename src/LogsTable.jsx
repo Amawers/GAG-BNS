@@ -4,6 +4,8 @@ import { supabase } from './supabaseClient';
 export default function LogsTable() {
   const [rows, setRows] = useState([]);
   const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [search, setSearch] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -11,7 +13,7 @@ export default function LogsTable() {
         .from('logs')
         .select('*')
         .order('timestamp', { ascending: false })
-        .limit(1000);
+        .limit(5000); // adjust as needed
 
       if (error) return;
 
@@ -28,10 +30,9 @@ export default function LogsTable() {
           totalSales: 0
         };
 
-        // Only store product and account separately
         grouped[tsKey].products.push({
-          product: log.product || '—', // product name only
-          account: log.account || '—', // account name only
+          product: log.product || '—',
+          account: log.account || '—',
           sales: Number(log.sales) || 0
         });
 
@@ -46,50 +47,79 @@ export default function LogsTable() {
 
   const formatPeso = val => val != null ? `₱${Number(val).toLocaleString()}` : '—';
 
+  // Filter by selected local date (PH timezone)
+  const filteredByDate = selectedDate
+    ? rows.filter(r => {
+        const d = new Date(r.timestamp);
+        const logDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        return logDate === selectedDate;
+      })
+    : rows;
+
+  // Filter by search (product, action, sales, or transact_by)
+  const filteredRows = filteredByDate.filter(r => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return r.action?.toLowerCase().includes(s) ||
+           r.transact_by?.toLowerCase().includes(s) ||
+           String(r.totalSales).includes(s) ||
+           r.products.some(p => p.product.toLowerCase().includes(s));
+  });
+
   return (
     <div>
       <h5 className="mb-3">Logs</h5>
 
+      <div className="mb-3 d-flex gap-2">
+        <input 
+          type="date" 
+          className="form-control" 
+          value={selectedDate} 
+          onChange={e => setSelectedDate(e.target.value)} 
+        />
+        <input 
+          type="text" 
+          className="form-control" 
+          placeholder="Search by product, action, sales, or by..." 
+          value={search} 
+          onChange={e => setSearch(e.target.value)} 
+        />
+      </div>
+
       <div className="card shadow-sm">
-        <div className="card-body p-0" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+        <div className="card-body p-0" style={{ maxHeight: '500px', overflowY: 'auto' }}>
           <table className="table table-striped table-hover mb-0">
             <thead className="table-light">
               <tr>
                 <th>When</th>
-                <th>
-                  Product(s) <span style={{ fontSize: "12px", color: "gray" }}>hover item</span>
-                </th>
+                <th>Product(s) <span style={{ fontSize: "12px", color: "gray" }}>hover item</span></th>
                 <th>Action</th>
                 <th>Sales</th>
                 <th>By</th>
               </tr>
             </thead>
             <tbody>
-              {rows.length > 0 ? rows.map((r, i) => (
+              {filteredRows.length > 0 ? filteredRows.map((r, i) => (
                 <tr key={i}>
                   <td>{r.timestamp ? new Date(r.timestamp).toLocaleString("en-PH") : '—'}</td>
                   <td style={{ position: 'relative' }}>
-                    {Array.isArray(r.products) && r.products.length > 0 ? (
+                    {r.products.length > 0 && (
                       <span
                         style={{
                           cursor: 'pointer',
                           padding: '2px 6px',
                           borderRadius: '4px',
-                          transition: 'all 0.2s ease',
                           display: 'inline-block',
                           backgroundColor: hoveredIndex === i ? '#f0f0f0' : 'transparent',
                           color: hoveredIndex === i ? '#007bff' : 'inherit',
                           fontWeight: hoveredIndex === i ? '600' : 'normal',
-                          boxShadow: hoveredIndex === i ? '0 4px 10px rgba(0,0,0,0.1)' : 'none',
-                          transform: hoveredIndex === i ? 'translateY(-2px)' : 'none'
                         }}
                         onMouseEnter={() => setHoveredIndex(i)}
                         onMouseLeave={() => setHoveredIndex(null)}
                       >
-                        {/* Only product names */}
                         {r.products.map(p => p.product).join(', ')}
                       </span>
-                    ) : '—'}
+                    )}
                     {hoveredIndex === i && (
                       <div style={{
                         position: 'absolute',

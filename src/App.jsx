@@ -14,10 +14,18 @@ export default function App() {
         {/* Sidebar */}
         <div
           className="d-flex flex-column p-3"
-          style={{ width: '220px', backgroundColor: '#fff', borderRight: '1px solid #dee2e6' }}
+          style={{
+            width: '220px',
+            backgroundColor: '#fff',
+            borderRight: '1px solid #dee2e6',
+            position: 'sticky',
+            top: 0,
+            height: '100vh',
+            overflowY: 'auto'
+          }}
         >
           <h5 className="mb-1">GAG Inventory</h5>
-<span className="small mb-3" style={{ color: '#6c757d' }}>Wavyu bibi</span>
+          <span className="small mb-3" style={{ color: '#6c757d' }}>Wavyu bibi</span>
 
           <ul className="nav flex-column gap-2">
             {['inventory', 'transaction', 'logs'].map((p) => (
