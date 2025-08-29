@@ -23,19 +23,20 @@ export default function InventoryPage() {
 	// };
 
 	useEffect(() => {
-       const channel = supabase.channel("test")
-  .on(
-    "postgres_changes",
-    { event: "*", schema: "public", table: "inventory" }, // lowercase table
-    (payload) => console.log("Realtime:", payload)
-  )
-  .subscribe((status) => console.log("Channel status:", status));
+		const channel = supabase
+			.channel("test")
+			.on(
+				"postgres_changes",
+				{ event: "*", schema: "public", table: "inventory" }, // lowercase table
+				(payload) => console.log("Realtime:", payload)
+			)
+			.subscribe((status) => console.log("Channel status:", status));
 
-        // Clean up the channel on component unmount
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, []);
+		// Clean up the channel on component unmount
+		return () => {
+			supabase.removeChannel(channel);
+		};
+	}, []);
 
 	const normalize = (str) =>
 		str
