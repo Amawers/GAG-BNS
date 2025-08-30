@@ -12,27 +12,51 @@ export default function InventoryPage() {
 
 	const [inventory, setInventory] = useState([]);
 
-	// --- Fetch initial inventory ---
-	// const fetchInventory = async () => {
-	// 	const { data, error } = await supabase
-	// 		.from("INVENTORY")
-	// 		.select("*")
-	// 		.order("last_updated", { ascending: false });
-	// 	if (!error) setInventory(data);
-	// 	else console.error("Fetch inventory error:", error);
-	// };
+	function formatDateTime(isoString) {
+		const date = new Date(isoString);
+		const options = {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+			hour: "numeric",
+			minute: "2-digit",
+			hour12: true,
+		};
+		return date.toLocaleString("en-US", options);
+	}
+
+	const fetchInventory = async () => {
+		const { data, error } = await supabase
+			.from("INVENTORY")
+			.select("*")
+			.order("last_updated", { ascending: false });
+		if (!error) setInventory(data);
+		else console.error("Fetch inventory error:", error);
+	};
 
 	useEffect(() => {
+		fetchInventory();
+
 		const channel = supabase
-			.channel("test")
+			.channel("inventory-changes")
 			.on(
 				"postgres_changes",
-				{ event: "*", schema: "public", table: "inventory" }, // lowercase table
-				(payload) => console.log("Realtime:", payload)
+				{ event: "*", schema: "public", table: "INVENTORY" },
+				(payload) => {
+					console.log("Realtime payload:", payload);
+
+					// Auto-refresh inventory when data changes
+					if (
+						["INSERT", "UPDATE", "DELETE"].includes(
+							payload.eventType
+						)
+					) {
+						fetchInventory();
+					}
+				}
 			)
 			.subscribe((status) => console.log("Channel status:", status));
 
-		// Clean up the channel on component unmount
 		return () => {
 			supabase.removeChannel(channel);
 		};
@@ -86,6 +110,98 @@ export default function InventoryPage() {
 	};
 
 	const accounts = [...new Set(inventory.map((d) => d.account_name))];
+
+	// 1️⃣ Define handleDelete somewhere at the top of InventoryPage
+	const handleDelete = async (id) => {
+		const result = await Swal.fire({
+			title: "Are you sure you want to delete this record?",
+			icon: "warning",
+			showCancelButton: true,
+			confirmButtonText: "Yes, delete it",
+			cancelButtonText: "No",
+			confirmButtonColor: "#dc3545",
+		});
+
+		if (!result.isConfirmed) return;
+
+		try {
+			await supabase
+				.from("INVENTORY LOG DETAIL")
+				.delete()
+				.eq("inventory_id", id);
+			await supabase.from("INVENTORY").delete().eq("id", id);
+			setShowModal(false);
+
+			Swal.fire({
+				toast: true,
+				position: "top-end",
+				icon: "success",
+				title: "Record deleted!",
+				showConfirmButton: false,
+				timer: 2000,
+				timerProgressBar: true,
+			});
+
+			fetchInventory(); // refresh table
+		} catch (err) {
+			Swal.fire({
+				icon: "error",
+				title: "Delete failed",
+				text: err.message,
+			});
+		}
+	};
+
+	const handleEdit = async () => {
+		const result = await Swal.fire({
+			title: "Save changes?",
+			text: "Are you sure you want to save the changes?",
+			icon: "question",
+			showCancelButton: true,
+			confirmButtonText: "Save",
+			cancelButtonText: "Cancel",
+			confirmButtonColor: "#28a745",
+		});
+
+		if (!result.isConfirmed) return;
+
+		try {
+			const { error } = await supabase
+				.from("INVENTORY")
+				.update({
+					account_name: form.account_name,
+					product_name: form.product_name,
+					stocks: form.stocks,
+					reserved: form.reserved,
+					price_each: form.price_each,
+					inserted_by: form.inserted_by,
+					last_updated: new Date().toISOString(),
+				})
+				.eq("id", form.id);
+
+			if (error) throw error;
+
+			setEditMode(false);
+			setShowModal(false);
+			fetchInventory();
+
+			Swal.fire({
+				toast: true,
+				position: "top-end",
+				icon: "success",
+				title: "Changes saved!",
+				showConfirmButton: false,
+				timer: 2000,
+				timerProgressBar: true,
+			});
+		} catch (err) {
+			Swal.fire({
+				icon: "error",
+				title: "Update failed",
+				text: err.message,
+			});
+		}
+	};
 
 	return (
 		<div>
@@ -202,10 +318,18 @@ export default function InventoryPage() {
 								<div className="d-flex flex-column">
 									{Object.entries(form).map(
 										([key, value], idx) => {
+											if (key === "id") return null; // skip rendering id
+
 											const isReadOnly = [
-												"id",
 												"last_updated",
-											].includes(key);
+												"available",
+											].includes(key); // available is read-only
+											let displayValue = value;
+
+											if (key === "last_updated") {
+												displayValue =
+													formatDateTime(value);
+											}
 											return (
 												<div
 													key={key}
@@ -229,6 +353,7 @@ export default function InventoryPage() {
 													>
 														{key.replace("_", " ")}
 													</strong>
+
 													{editMode && !isReadOnly ? (
 														key ===
 														"inserted_by" ? (
@@ -249,8 +374,7 @@ export default function InventoryPage() {
 															>
 																{[
 																	"Ekong",
-																	"Lando",
-																	"Maki",
+																	"Xachi",
 																].map(
 																	(name) => (
 																		<option
@@ -268,44 +392,31 @@ export default function InventoryPage() {
 																	)
 																)}
 															</select>
-														) : key ===
-														  "price_each" ? (
-															<div
-																className="input-group input-group-sm"
+														) : [
+																"stocks",
+																"reserved",
+																"price_each",
+																"sold",
+														  ].includes(key) ? (
+															<input
+																type="number"
+																value={value}
+																className="form-control form-control-sm"
 																style={{
 																	maxWidth:
 																		"150px",
 																}}
-															>
-																<span className="input-group-text">
-																	₱
-																</span>
-																<input
-																	type="number"
-																	value={
-																		value
-																	}
-																	className="form-control"
-																	onChange={(
-																		e
-																	) =>
-																		handleChange(
-																			key,
-																			e
-																				.target
-																				.value
-																		)
-																	}
-																/>
-															</div>
+																onChange={(e) =>
+																	handleChange(
+																		key,
+																		e.target
+																			.value
+																	)
+																}
+															/>
 														) : (
 															<input
-																type={
-																	typeof value ===
-																	"number"
-																		? "number"
-																		: "text"
-																}
+																type="text"
 																value={value}
 																className="form-control form-control-sm"
 																style={{
@@ -329,13 +440,21 @@ export default function InventoryPage() {
 														>
 															₱{value}
 														</span>
-													) : (
+													) : key === "available" ? (
 														<span
 															style={{
 																color: "#333",
 															}}
 														>
 															{value}
+														</span>
+													) : (
+														<span
+															style={{
+																color: "#333",
+															}}
+														>
+															{displayValue}
 														</span>
 													)}
 												</div>
@@ -354,42 +473,8 @@ export default function InventoryPage() {
 												: "btn-warning"
 										}`}
 										onClick={() => {
-											if (editMode) {
-												Swal.fire({
-													title: "Save changes?",
-													text: "Are you sure you want to save the changes?",
-													icon: "question",
-													showCancelButton: true,
-													confirmButtonText: "Save",
-													cancelButtonText: "Cancel",
-													confirmButtonColor:
-														"#28a745",
-												}).then((result) => {
-													if (result.isConfirmed) {
-														// perform save logic here
-														console.log(
-															`Saved changes: ${JSON.stringify(
-																form
-															)}`
-														);
-														setEditMode(false);
-														setShowModal(false); // close modal
-
-														// Toast success
-														Swal.fire({
-															toast: true,
-															position: "top-end",
-															icon: "success",
-															title: "Changes saved!",
-															showConfirmButton: false,
-															timer: 2000,
-															timerProgressBar: true,
-														});
-													}
-												});
-											} else {
-												setEditMode(true);
-											}
+											if (editMode) handleEdit();
+											else setEditMode(true);
 										}}
 									>
 										{editMode ? "Save Edit" : "Edit"}
@@ -397,36 +482,7 @@ export default function InventoryPage() {
 
 									<button
 										className="btn btn-sm btn-danger"
-										onClick={() => {
-											Swal.fire({
-												title: "Are you sure you want to delete this record?",
-												icon: "warning",
-												showCancelButton: true,
-												confirmButtonText:
-													"Yes, delete it",
-												cancelButtonText: "No",
-												confirmButtonColor: "#dc3545", // red
-											}).then((result) => {
-												if (result.isConfirmed) {
-													// perform delete logic
-													console.log(
-														`Deleted record: ${form.id}`
-													);
-													setShowModal(false);
-
-													// Toast instead of modal
-													Swal.fire({
-														toast: true,
-														position: "top-end",
-														icon: "success",
-														title: "Record deleted!",
-														showConfirmButton: false,
-														timer: 2000,
-														timerProgressBar: true,
-													});
-												}
-											});
-										}}
+										onClick={() => handleDelete(form.id)}
 									>
 										Delete
 									</button>

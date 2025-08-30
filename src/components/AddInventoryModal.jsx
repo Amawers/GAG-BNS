@@ -1,9 +1,43 @@
-// ✅ Reusable Modal Component (Form Only)
+import { supabase } from "../supabaseClient"; // ✅ make sure path is correct
 import Swal from "sweetalert2";
 
 export default function AddInventoryModal({ show, form, setForm, onClose }) {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = async () => {
+    const { error } = await supabase.from("INVENTORY").insert([
+      {
+        account_name: form.account,
+        product_name: form.product,
+        stocks: Number(form.stocks) || 0,
+        reserved: 0, // default 0
+        price_each: Number(form.price_each) || 0,
+        inserted_by: form.inserted_by || "Ekong",
+      },
+    ]);
+
+    if (error) {
+      console.error("Insert error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Insert failed",
+        text: error.message,
+      });
+    } else {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "Inventory created!",
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+      });
+      onClose();
+      setForm({});
+    }
   };
 
   if (!show) return null;
@@ -26,14 +60,14 @@ export default function AddInventoryModal({ show, form, setForm, onClose }) {
               <input
                 className="form-control"
                 name="account"
-                value={form.account}
+                value={form.account || ""}
                 onChange={handleChange}
                 placeholder="Account"
               />
               <input
                 className="form-control"
                 name="product"
-                value={form.product}
+                value={form.product || ""}
                 onChange={handleChange}
                 placeholder="Product"
               />
@@ -41,7 +75,7 @@ export default function AddInventoryModal({ show, form, setForm, onClose }) {
                 type="number"
                 className="form-control"
                 name="stocks"
-                value={form.stocks}
+                value={form.stocks || ""}
                 onChange={handleChange}
                 placeholder="Stocks"
               />
@@ -51,7 +85,7 @@ export default function AddInventoryModal({ show, form, setForm, onClose }) {
                   type="number"
                   className="form-control"
                   name="price_each"
-                  value={form.price_each}
+                  value={form.price_each || ""}
                   onChange={handleChange}
                   placeholder="Price Each"
                 />
@@ -59,7 +93,7 @@ export default function AddInventoryModal({ show, form, setForm, onClose }) {
               <select
                 className="form-select"
                 name="inserted_by"
-                value={form.inserted_by}
+                value={form.inserted_by || ""}
                 onChange={handleChange}
               >
                 <option value="" disabled hidden>
@@ -72,26 +106,9 @@ export default function AddInventoryModal({ show, form, setForm, onClose }) {
           </div>
 
           <div className="modal-footer">
-           <button
-  type="button"
-  className="btn btn-success"
-  onClick={() => {
-    Swal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: "Inventory created!",
-      showConfirmButton: false,
-      timer: 2000,
-      timerProgressBar: true,
-    });
-    onClose();
-  }}
->
-  Save
-</button>
-
-
+            <button type="button" className="btn btn-success" onClick={handleSave}>
+              Save
+            </button>
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Close
             </button>
