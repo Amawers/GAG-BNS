@@ -1,155 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import ReservationConfirmationModal from "./components/ReservationConfirmationModal";
 import SellConfirmationModal from "./components/SellConfirmationModal";
 import Swal from "sweetalert2";
+import supabase from "../config/supabase"
 
-const products = [
-	{
-		id: 1,
-		account_name: "Account 1",
-		user_name: "@user1",
-		product_name: "Product A",
-		stocks: 50,
-		price_each: 100,
-	},
-	{
-		id: 2,
-		account_name: "Account 2",
-		user_name: "@user2",
-		product_name: "Product B",
-		stocks: 30,
-		price_each: 150,
-	},
-	{
-		id: 3,
-		account_name: "Account 3",
-		user_name: "@user3",
-		product_name: "Product C",
-		stocks: 20,
-		price_each: 200,
-	},
-	{
-		id: 4,
-		account_name: "Account 4",
-		user_name: "@user4",
-		product_name: "Product D",
-		stocks: 40,
-		price_each: 120,
-	},
-	{
-		id: 5,
-		account_name: "Account 5",
-		user_name: "@user5",
-		product_name: "Product E",
-		stocks: 25,
-		price_each: 90,
-	},
-	{
-		id: 6,
-		account_name: "Account 6",
-		user_name: "@user6",
-		product_name: "Product F",
-		stocks: 60,
-		price_each: 75,
-	},
-	{
-		id: 7,
-		account_name: "Account 7",
-		user_name: "@user7",
-		product_name: "Product G",
-		stocks: 35,
-		price_each: 110,
-	},
-	{
-		id: 8,
-		account_name: "Account 8",
-		user_name: "@user8",
-		product_name: "Product H",
-		stocks: 50,
-		price_each: 80,
-	},
-	{
-		id: 9,
-		account_name: "Account 9",
-		user_name: "@user9",
-		product_name: "Product I",
-		stocks: 45,
-		price_each: 130,
-	},
-	{
-		id: 10,
-		account_name: "xachi",
-		user_name: "@xachi",
-		product_name: "T-Rex",
-		stocks: 20,
-		price_each: 95,
-	},
-	{
-		id: 11,
-		account_name: "xachi",
-		user_name: "@xachi",
-		product_name: "Butterfly",
-		stocks: 20,
-		price_each: 95,
-	},
-	{
-		id: 12,
-		account_name: "xachi",
-		user_name: "@xachi",
-		product_name: "Dragonfly",
-		stocks: 20,
-		price_each: 95,
-	},
-	{
-		id: 13,
-		account_name: "xachi2",
-		user_name: "@xachi2",
-		product_name: "T-Rex",
-		stocks: 20,
-		price_each: 95,
-	},
-	{
-		id: 14,
-		account_name: "xachi2",
-		user_name: "@xachi2",
-		product_name: "Butterfly",
-		stocks: 20,
-		price_each: 95,
-	},
-	{
-		id: 15,
-		account_name: "xachi2",
-		user_name: "@xachi2",
-		product_name: "Dragonfly",
-		stocks: 20,
-		price_each: 95,
-	},
-	{
-		id: 16,
-		account_name: "xachi3",
-		user_name: "@xachi3",
-		product_name: "T-Rex",
-		stocks: 20,
-		price_each: 95,
-	},
-	{
-		id: 17,
-		account_name: "xachi3",
-		user_name: "@xachi3",
-		product_name: "Butterfly",
-		stocks: 20,
-		price_each: 95,
-	},
-	{
-		id: 18,
-		account_name: "xachi3",
-		user_name: "@xachi3",
-		product_name: "Dragonfly",
-		stocks: 20,
-		price_each: 95,
-	},
-];
 
 export default function TransactionPage() {
 	const [cart, setCart] = useState([]);
@@ -157,7 +12,42 @@ export default function TransactionPage() {
 	const [suggestions, setSuggestions] = useState([]);
 	const [showReservationModal, setShowReservationModal] = useState(false);
 	const [showConfirmModal, setShowConfirmModal] = useState(false);
+	const [products, setProducts] = useState([]); // store inventory
 
+	// Fetch inventory from Supabase
+	const fetchInventory = async () => {
+		const { data, error } = await supabase
+			.from("INVENTORY")
+			.select("*")
+			.order("last_updated", { ascending: false });
+		if (!error) setProducts(data);
+		else console.error("Fetch inventory error:", error);
+	};
+
+	useEffect(() => {
+		fetchInventory();
+
+		// Realtime listener for inventory changes
+		const channel = supabase
+			.channel("inventory-changes")
+			.on(
+				"postgres_changes",
+				{ event: "*", schema: "public", table: "INVENTORY" },
+				(payload) => {
+					console.log("Realtime payload:", payload);
+					if (
+						["INSERT", "UPDATE", "DELETE"].includes(
+							payload.eventType
+						)
+					) {
+						fetchInventory(); // Refresh inventory on any change
+					}
+				}
+			)
+			.subscribe((status) => console.log("Channel status:", status));
+
+		return () => supabase.removeChannel(channel);
+	}, []);
 
 	const grandTotal = cart.reduce(
 		(sum, item) => sum + item.price_each * item.qty,
@@ -258,7 +148,6 @@ export default function TransactionPage() {
 	return (
 		<div className="container mt-4">
 			<h2>Transaction Page</h2>
-			
 
 			<div className="row mt-4">
 				{/* Product Input */}
@@ -487,8 +376,6 @@ export default function TransactionPage() {
 						user_name: item.user_name, // updated
 					}))}
 					grandTotal={grandTotal}
-					confirmText="Confirm Sale"
-					confirmColor="success"
 					onClose={() => setShowConfirmModal(false)}
 					onConfirm={() => {
 						setCart([]);

@@ -1,13 +1,12 @@
 // components/TransactionConfirmationModal.jsx
 import React, { useState } from "react";
+import Swal from "sweetalert2";
+import supabase from "../../config/supabase"
 
 export default function TransactionConfirmationModal({
 	cart,
 	grandTotal,
-	onClose,
-	onConfirm,
-	confirmText = "Confirm",
-	confirmColor = "success",
+	onClose
 }) {
 	const [processor, setProcessor] = useState("Ekong"); // default value
 
@@ -53,6 +52,44 @@ export default function TransactionConfirmationModal({
 			.then(() => alert("Receipt copied to clipboard!"))
 			.catch(() => alert("Failed to copy"));
 	};
+
+	const handleConfirm = async () => {
+    try {
+      const items = cart.map((item) => ({
+        account_name: item.account_name,
+        product_name: item.product_name,
+        price_each: item.price_each,
+        quantity: item.qty,
+      }));
+
+      const { data, error } = await supabase.rpc("create_sale_transaction", {
+        p_process_by: processor,
+        p_items: items,
+      });
+
+      if (error) throw error;
+
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "Sale confirmed!",
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+      });
+
+      console.log("RPC result:", data);
+
+      onClose(); // close modal
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Sale failed",
+        text: err.message,
+      });
+    }
+  };
 
 	return (
 		<div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
@@ -109,8 +146,8 @@ export default function TransactionConfirmationModal({
 							<button className="btn btn-secondary me-2" onClick={onClose}>
 								Close
 							</button>
-							<button className={`btn btn-${confirmColor}`} onClick={onConfirm}>
-								{confirmText}
+							<button className={`btn btn-success`} onClick={handleConfirm}>
+								Confirm Sale
 							</button>
 						</div>
 					</div>

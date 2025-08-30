@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from "react-router-dom";
 import InventoryPage from "../src/InventoryPage";
 import LogsPage from "../src/LogsPage"
+import TransactionPage from "../src/TransactionPage"
+
 function Layout({ children }) {
   return (
     <div className="d-flex">
@@ -80,7 +82,6 @@ function Layout({ children }) {
 }
 
 // Placeholder Pages
-const TransactionPage = () => <div>💳 Transaction Page</div>;
 const ReservationPage = () => <div>📝 Reservation Page</div>;
 
 export default function App() {
