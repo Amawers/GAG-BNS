@@ -35,14 +35,14 @@ function Layout({ children }) {
       color: "white",
     }}
   >
-    🌿GAG BNS
+     🌿GAG BNS
     <span
       style={{
         content: '""',
         position: "absolute",
         bottom: "-4px",
         left: "0",
-        width: "100%",
+        width: "110%",
         height: "3px",
         background: "linear-gradient(to right, #28a745, #a8e6a2)",
         borderRadius: "2px",
