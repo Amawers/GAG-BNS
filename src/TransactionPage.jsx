@@ -3,8 +3,8 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import ReservationConfirmationModal from "./components/ReservationConfirmationModal";
 import SellConfirmationModal from "./components/SellConfirmationModal";
 import Swal from "sweetalert2";
-import supabase from "../config/supabase"
-
+import supabase from "../config/supabase";
+import trans from "../src/assets/invoice.gif";
 
 export default function TransactionPage() {
 	const [cart, setCart] = useState([]);
@@ -231,6 +231,14 @@ export default function TransactionPage() {
 					>
 						<h4 className="text-center mb-2 text-uppercase">
 							Current Transaction
+							<img
+								src={trans}
+								alt="dino gif"
+								style={{
+									width: "50px",
+									height: "auto",
+								}}
+							/>
 						</h4>
 						<p className="text-center mb-2">
 							{new Date().toLocaleDateString()} -{" "}
