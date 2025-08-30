@@ -26,8 +26,31 @@ function Layout({ children }) {
 				style={{ width: "260px", borderTopRightRadius: "1rem" }}
 			>
 				<div className="d-flex align-items-center mb-4">
-					<span className="fs-4 fw-bold">🦖🌿 GAG BNS</span>
-				</div>
+  <span
+    style={{
+      fontFamily: "cursive",
+      fontSize: "1.8rem",
+      fontWeight: "bold",
+      position: "relative",
+      color: "white",
+    }}
+  >
+    🌿GAG BNS
+    <span
+      style={{
+        content: '""',
+        position: "absolute",
+        bottom: "-4px",
+        left: "0",
+        width: "100%",
+        height: "3px",
+        background: "linear-gradient(to right, #28a745, #a8e6a2)",
+        borderRadius: "2px",
+      }}
+    ></span>
+  </span>
+</div>
+
 
 				<ul className="nav nav-pills flex-column mb-auto">
 					{navItems.map((item) => (
