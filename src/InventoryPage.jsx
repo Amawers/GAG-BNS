@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import AddInventoryModal from "./components/AddInventoryModal";
 import Swal from "sweetalert2";
 import { supabase } from "./supabaseClient";
+import money from "../src/assets/financial-freedom.gif";
+import avail from "../src/assets/delivery-service.gif";
+
 export default function InventoryPage() {
 	const [showModal, setShowModal] = useState(false);
 	const [mode, setMode] = useState("new"); // "new" | "details"
@@ -254,8 +257,25 @@ export default function InventoryPage() {
 								<th>Product</th>
 								<th>Stocks</th>
 								<th>Reserved</th>
-								<th>🟢 Available</th>
-								<th>💸Price</th>
+								<th><img
+										src={avail}
+										alt="dino gif"
+										style={{
+											width: "22px",
+											height: "auto",
+										}}
+									/> Available</th>
+								<th>
+									<img
+										src={money}
+										alt="dino gif"
+										style={{
+											width: "22px",
+											height: "auto",
+										}}
+									/>
+									Price
+								</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -269,7 +289,9 @@ export default function InventoryPage() {
 									<td>{row.product_name}</td>
 									<td>{row.stocks}</td>
 									<td>{row.reserved}</td>
-									<td>{row.stocks - row.reserved}</td>
+<td style={{ color: "#4caf50", fontWeight: "bold" }}>
+  {row.stocks - row.reserved}
+</td>
 									<td>₱{row.price_each}</td>
 								</tr>
 							))}
