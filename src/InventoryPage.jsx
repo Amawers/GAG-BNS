@@ -232,7 +232,7 @@ export default function InventoryPage() {
 					))}
 				</select>
 				<button
-					className="btn btn-primary btn-sm ms-auto fw-medium"
+					className="btn btn-success btn-sm ms-auto fw-medium"
 					onClick={handleOpenAdd}
 				>
 					Add Inventory

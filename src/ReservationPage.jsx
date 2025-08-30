@@ -33,6 +33,7 @@ export default function ReservationPage() {
       date_pickup,
       status,
       process_by,
+	  customer_name,
       "RESERVED PRODUCT" (
         account_name,
         product_name,
@@ -43,8 +44,10 @@ export default function ReservationPage() {
 			)
 			.order("date_reserved", { ascending: false });
 
-		if (!error) setReservations(data);
-		else console.error(error);
+		if (!error) {
+			console.log("Reservations JSON:", JSON.stringify(data, null, 2));
+			setReservations(data);
+		} else console.error(error);
 	};
 
 	useEffect(() => {
@@ -259,6 +262,10 @@ export default function ReservationPage() {
 									<div className="d-flex justify-content-between">
 										<strong>Reference #:</strong>
 										<span>{form.reference_number}</span>
+									</div>
+									<div className="d-flex justify-content-between">
+										<strong>Customer Name:</strong>
+										<span>{form.customer_name || "-"}</span>
 									</div>
 									<div className="d-flex justify-content-between">
 										<strong>Date Reserved:</strong>

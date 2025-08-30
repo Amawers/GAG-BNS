@@ -37,6 +37,7 @@ export default function LogsPage() {
           date_pickup,
           status,
           process_by,
+		  customer_name,
           "RESERVED PRODUCT" (
             account_name,
             product_name,
@@ -170,7 +171,7 @@ export default function LogsPage() {
 					/>
 				</div>
 				<button
-					className="btn btn-primary"
+					className="btn btn-success"
 					onClick={() => downloadSalesReportImage()}
 				>
 					Download Sales Report
@@ -399,6 +400,10 @@ export default function LogsPage() {
 															][0];
 														return (
 															<>
+															<div className="d-flex justify-content-between mt-2">
+            <strong>Customer:</strong>
+            <span>{reservation.customer_name || "-"}</span>
+          </div>
 																<div className="d-flex justify-content-between mt-2">
 																	<strong>
 																		Status:

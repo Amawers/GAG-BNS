@@ -14,7 +14,7 @@ function Layout({ children }) {
       >
         {/* Brand */}
         <div className="d-flex align-items-center mb-4">
-          <span className="fs-4 fw-bold">🌿 XACHI GAG BNS</span>
+          <span className="fs-4 fw-bold">🦖🌿 GAG BNS</span>
         </div>
 
         {/* Navigation */}
@@ -71,7 +71,7 @@ function Layout({ children }) {
 
         {/* Footer */}
         <hr className="text-light" />
-        <div className="small">© 2025 My App</div>
+        <div className="small">© 2025 Kongskie</div>
       </nav>
 
       {/* Main Content */}
