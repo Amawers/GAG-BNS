@@ -181,7 +181,7 @@ export default function LogsPage() {
 			<div className="card shadow-sm">
 				<div
 					className="card-body p-0"
-					style={{ maxHeight: "365px", overflowY: "auto" }}
+					style={{ maxHeight: "510px", overflowY: "auto" }}
 				>
 					<table className="table table-striped table-hover mb-0">
 						<thead
@@ -290,9 +290,7 @@ export default function LogsPage() {
 																Action:
 															</strong>
 															<span>
-																{d.log
-																	?.action ||
-																	"Unknown"}
+																{form.action}
 															</span>
 														</div>
 														<div className="d-flex justify-content-between">

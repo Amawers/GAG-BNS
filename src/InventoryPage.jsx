@@ -242,49 +242,43 @@ export default function InventoryPage() {
 			<div className="card shadow-sm">
 				<div
 					className="card-body p-0"
-					style={{ maxHeight: "365px", overflowY: "auto" }}
+					style={{ maxHeight: "510px", overflowY: "auto" }}
 				>
-					<table className="table table-striped table-hover mb-0">
-						<thead
-							className="table-light"
-							style={{ position: "sticky", top: 0, zIndex: 1 }}
-						>
-							<tr>
-								<th>Account</th>
-								<th>Product</th>
-								<th>Stocks</th>
-								<th>Reserved</th>
-								<th>Available</th>
-								<th>Price</th>
-							</tr>
-						</thead>
-						<tbody>
-							{filteredRows.map((row) => (
-								<tr
-									key={row.id}
-									onClick={() => handleRowClick(row)}
-									style={{ cursor: "pointer" }}
-								>
-									<td>{row.account_name}</td>
-									<td>{row.product_name}</td>
-									<td>{row.stocks}</td>
-									<td>{row.reserved}</td>
-									<td>{row.stocks - row.reserved}</td>
-									<td>₱{row.price_each}</td>
-								</tr>
-							))}
-							{filteredRows.length === 0 && (
-								<tr>
-									<td
-										colSpan="6"
-										className="text-center text-muted"
-									>
-										No matching records
-									</td>
-								</tr>
-							)}
-						</tbody>
-					</table>
+					<table className="table table-striped table-hover mb-0 text-center">
+  <thead
+    className="table-light"
+    style={{ position: "sticky", top: 0, zIndex: 1 }}
+  >
+    <tr>
+      <th>Account</th>
+      <th>Product</th>
+      <th>Stocks</th>
+      <th>Reserved</th>
+      <th>🟢 Available</th>
+      <th>💸Price</th>
+    </tr>
+  </thead>
+  <tbody>
+    {filteredRows.map((row) => (
+      <tr key={row.id} onClick={() => handleRowClick(row)} style={{ cursor: "pointer" }}>
+        <td>{row.account_name}</td>
+        <td>{row.product_name}</td>
+        <td>{row.stocks}</td>
+        <td>{row.reserved}</td>
+        <td>{row.stocks - row.reserved}</td>
+        <td>₱{row.price_each}</td>
+      </tr>
+    ))}
+    {filteredRows.length === 0 && (
+      <tr>
+        <td colSpan="6" className="text-center text-muted">
+          No matching records
+        </td>
+      </tr>
+    )}
+  </tbody>
+</table>
+
 				</div>
 			</div>
 

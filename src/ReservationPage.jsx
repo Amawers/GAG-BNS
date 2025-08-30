@@ -190,7 +190,7 @@ export default function ReservationPage() {
 			<div className="card shadow-sm">
 				<div
 					className="card-body p-0"
-					style={{ maxHeight: "365px", overflowY: "auto" }}
+					style={{ maxHeight: "510px", overflowY: "auto" }}
 				>
 					<table className="table table-striped table-hover mb-0">
 						<thead
