@@ -5,6 +5,13 @@ export default function useSalesReport(logs) {
     // Prepare sales logs with items
    const sales = logs
   .filter(d => d.action === "Sold" || d.action === "Reserved → Sold")
+  .filter(d => {
+    const phTime = new Date(new Date(d.when).toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+    const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+    return phTime.getFullYear() === today.getFullYear() &&
+           phTime.getMonth() === today.getMonth() &&
+           phTime.getDate() === today.getDate();
+  })
       .map(log => {
         const reservation = log["RESERVATION DETAIL"]?.[0];
         let items = [];

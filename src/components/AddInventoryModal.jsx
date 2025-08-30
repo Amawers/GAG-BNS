@@ -1,7 +1,7 @@
 import { supabase } from "../supabaseClient"; // ✅ make sure path is correct
 import Swal from "sweetalert2";
 
-export default function AddInventoryModal({ show, form, setForm, onClose }) {
+export default function AddInventoryModal({ show, form, setForm, onClose, refresh }) {
 	const handleChange = (e) => {
 		setForm({ ...form, [e.target.name]: e.target.value });
 	};
@@ -38,6 +38,7 @@ export default function AddInventoryModal({ show, form, setForm, onClose }) {
 			});
 			onClose();
 			setForm({});
+			refresh();
 		}
 	};
 

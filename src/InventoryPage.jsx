@@ -245,40 +245,46 @@ export default function InventoryPage() {
 					style={{ maxHeight: "510px", overflowY: "auto" }}
 				>
 					<table className="table table-striped table-hover mb-0 text-center">
-  <thead
-    className="table-light"
-    style={{ position: "sticky", top: 0, zIndex: 1 }}
-  >
-    <tr>
-      <th>Account</th>
-      <th>Product</th>
-      <th>Stocks</th>
-      <th>Reserved</th>
-      <th>🟢 Available</th>
-      <th>💸Price</th>
-    </tr>
-  </thead>
-  <tbody>
-    {filteredRows.map((row) => (
-      <tr key={row.id} onClick={() => handleRowClick(row)} style={{ cursor: "pointer" }}>
-        <td>{row.account_name}</td>
-        <td>{row.product_name}</td>
-        <td>{row.stocks}</td>
-        <td>{row.reserved}</td>
-        <td>{row.stocks - row.reserved}</td>
-        <td>₱{row.price_each}</td>
-      </tr>
-    ))}
-    {filteredRows.length === 0 && (
-      <tr>
-        <td colSpan="6" className="text-center text-muted">
-          No matching records
-        </td>
-      </tr>
-    )}
-  </tbody>
-</table>
-
+						<thead
+							className="table-light"
+							style={{ position: "sticky", top: 0, zIndex: 1 }}
+						>
+							<tr>
+								<th>Account</th>
+								<th>Product</th>
+								<th>Stocks</th>
+								<th>Reserved</th>
+								<th>🟢 Available</th>
+								<th>💸Price</th>
+							</tr>
+						</thead>
+						<tbody>
+							{filteredRows.map((row) => (
+								<tr
+									key={row.id}
+									onClick={() => handleRowClick(row)}
+									style={{ cursor: "pointer" }}
+								>
+									<td>{row.account_name}</td>
+									<td>{row.product_name}</td>
+									<td>{row.stocks}</td>
+									<td>{row.reserved}</td>
+									<td>{row.stocks - row.reserved}</td>
+									<td>₱{row.price_each}</td>
+								</tr>
+							))}
+							{filteredRows.length === 0 && (
+								<tr>
+									<td
+										colSpan="6"
+										className="text-center text-muted"
+									>
+										No matching records
+									</td>
+								</tr>
+							)}
+						</tbody>
+					</table>
 				</div>
 			</div>
 
@@ -288,6 +294,7 @@ export default function InventoryPage() {
 					form={form}
 					setForm={setForm}
 					onClose={() => setShowModal(false)}
+					refresh={fetchInventory}
 				/>
 			)}
 
@@ -315,6 +322,7 @@ export default function InventoryPage() {
 											if (key === "id") return null; // skip rendering id
 
 											const isReadOnly = [
+												"reserved",
 												"last_updated",
 												"available",
 											].includes(key); // available is read-only
@@ -442,13 +450,29 @@ export default function InventoryPage() {
 														>
 															{value}
 														</span>
+													) : key === "reserved" ? (
+														<span
+															style={{
+																color: "#333",
+															}}
+														>
+															{value}
+														</span>
 													) : (
-														<span style={{ color: "#333" }}>
-  {key === "account_name" 
-    ? `${value} ${form.user_name ? `(@${form.user_name})` : ""}` 
-    : displayValue}
-</span>
-
+														<span
+															style={{
+																color: "#333",
+															}}
+														>
+															{key ===
+															"account_name"
+																? `${value} ${
+																		form.user_name
+																			? `(@${form.user_name})`
+																			: ""
+																  }`
+																: displayValue}
+														</span>
 													)}
 												</div>
 											);
