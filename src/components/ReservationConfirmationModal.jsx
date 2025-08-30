@@ -26,6 +26,8 @@ export default function ReservationConfirmationModal({
 					p_process_by: reservedBy,
 					p_items: items,
 					p_pickup_date: pickupDateTime, // <-- add this
+					    p_customer_name: customerName, // <-- added
+
 				}
 			);
 

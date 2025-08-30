@@ -101,7 +101,7 @@ export default function ReservationPage() {
 
 	const confirmReservation = async (reservationId) => {
 		try {
-			const { data, error } = await supabase
+			const { error } = await supabase
 				.from("RESERVATION DETAIL")
 				.update({ status: "Confirmed" })
 				.eq("id", reservationId);
@@ -258,7 +258,7 @@ export default function ReservationPage() {
 								<div className="d-flex flex-column gap-3">
 									<div className="d-flex justify-content-between">
 										<strong>Reference #:</strong>
-										<span>{form.reference}</span>
+										<span>{form.reference_number}</span>
 									</div>
 									<div className="d-flex justify-content-between">
 										<strong>Date Reserved:</strong>
