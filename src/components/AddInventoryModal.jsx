@@ -69,9 +69,9 @@ export default function AddInventoryModal({ show, form, setForm, onClose }) {
 								onChange={handleChange}
 								placeholder="Account"
 							/>
-              <input
+							<input
 								className="form-control"
-								name="account"
+								name="user"
 								value={form.user || ""}
 								onChange={handleChange}
 								placeholder="@User"

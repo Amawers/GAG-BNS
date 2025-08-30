@@ -1,166 +1,93 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import supabase from "../config/supabase";
 import useSalesReport from "./hooks/useSalesReport";
+
 export default function LogsPage() {
+	const [logs, setLogs] = useState([]);
+	const [loading, setLoading] = useState(true);
 	const [showModal, setShowModal] = useState(false);
 	const [form, setForm] = useState({});
 	const [search, setSearch] = useState("");
 	const [filterDate, setFilterDate] = useState("");
 
-	function formatDateTime(isoString) {
-		const date = new Date(isoString);
-		const options = {
-			year: "numeric",
-			month: "short",
-			day: "numeric",
-			hour: "numeric",
-			minute: "2-digit",
-			hour12: true,
-		};
-		return date.toLocaleString("en-US", options);
-	}
+	const fetchLogs = async () => {
+		setLoading(true);
 
-	const dummyData = [
-		{
-			id: 1,
-			when: "8/28/2025, 12:00 PM",
-			action: "Inventory",
-			process_by: "Ekong",
-			details: [
-				{
-					id: "INV001",
-					account_name: "xachi",
-					product_name: "T-Rex",
-					stocks: 50,
-					price_each: 95,
-					inserted_by: "Ekong",
-					date_inserted: "8/28/2025, 10:00 AM",
-				},
-			],
-		},
-		{
-			id: 2,
-			when: "8/29/2025, 1:00 PM",
-			action: "Reserve",
-			reference: "TRX002",
-			date_reserved: "8/31/2025, 6:00 PM",
-			date_pickup: "8/30/2025, 3:00 PM",
+		const { data, error } = await supabase
+			.from("LOG")
+			.select(
+				`
+        *,
+        "INVENTORY LOG DETAIL" (
+          inventory_id,
+          inventory:INVENTORY (
+            id,
+            account_name,
+            product_name,
+            stocks,
+            price_each,
+            inserted_by,
+            last_updated
+          )
+        ),
+        "RESERVATION DETAIL" (
+          id,
+          reference_number,
+          date_reserved,
+          date_pickup,
+          status,
+          process_by,
+          "RESERVED PRODUCT" (
+            account_name,
+            product_name,
+            price_each,
+            quantity
+          )
+        ),
+        "SOLD ITEM" (
+          account_name,
+          product_name,
+          price_each,
+          quantity
+        )
+      `
+			)
+			.order("when", { ascending: false });
 
-			process_by: "Ann",
-			items: [
-				{
-					account_name: "xachi",
-					product_name: "T-Rex",
-					price_each: 95,
-					qty: 2,
-				},
-				{
-					account_name: "xachi2",
-					product_name: "Butterfly",
-					price_each: 95,
-					qty: 1,
-				},
-			],
-		},
-		{
-			id: 3,
-			when: "8/29/2025, 2:00 PM",
-			action: "Sell",
-			reference: "TRX003",
-			process_by: "John",
-			items: [
-				{
-					account_name: "xachi3",
-					product_name: "Dragonfly",
-					price_each: 95,
-					qty: 3,
-				},
-			],
-		},
-		{
-			id: 4,
-			when: "8/29/2025, 3:30 PM",
-			action: "Sell",
-			reference: "TRX004",
-			process_by: "Ann",
-			items: [
-				{
-					account_name: "xachi",
-					product_name: "T-Rex",
-					price_each: 95,
-					qty: 1,
-				},
-				{
-					account_name: "xachi2",
-					product_name: "Dragonfly",
-					price_each: 95,
-					qty: 2,
-				},
-			],
-		},
-		{
-			id: 5,
-			when: "8/29/2025, 4:00 PM",
-			action: "Sell",
-			reference: "TRX005",
-			process_by: "John",
-			items: [
-				{
-					account_name: "xachi3",
-					product_name: "Butterfly",
-					price_each: 95,
-					qty: 4,
-				},
-			],
-		},
-		{
-			id: 6,
-			when: "8/29/2025, 5:15 PM",
-			action: "Sell",
-			reference: "TRX006",
-			process_by: "Ekong",
-			items: [
-				{
-					account_name: "xachi",
-					product_name: "Dragonfly",
-					price_each: 95,
-					qty: 2,
-				},
-				{
-					account_name: "xachi2",
-					product_name: "T-Rex",
-					price_each: 95,
-					qty: 1,
-				},
-			],
-		},
-		{
-			id: 7,
-			when: "8/29/2025, 6:00 PM",
-			action: "Sell",
-			reference: "TRX007",
-			process_by: "Ann",
-			items: [
-				{
-					account_name: "xachi3",
-					product_name: "T-Rex",
-					price_each: 95,
-					qty: 5,
-				},
-			],
-		},
-	];
+		if (error) console.error(error);
+		else {
+			console.log("Fetched logs:", JSON.stringify(data, null, 2));
+			setLogs(data);
+		}
 
-	const { downloadSalesReportImage } = useSalesReport(dummyData);
+		setLoading(false);
+	};
+
+	useEffect(() => {
+		fetchLogs();
+
+		const subscription = supabase
+			.channel("realtime-logs")
+			.on(
+				"postgres_changes",
+				{ event: "*", schema: "public", table: "LOG" },
+				fetchLogs
+			)
+			.subscribe();
+
+		return () => supabase.removeChannel(subscription);
+	}, []);
+
+	const { downloadSalesReportImage } = useSalesReport(logs);
 
 	const normalize = (str) =>
 		str
-			.toLowerCase()
+			?.toLowerCase()
 			.normalize("NFD")
 			.replace(/[\u0300-\u036f]/g, "")
 			.replace(/[^a-z0-9]/gi, "");
 
-	// filter by search and date
-	const filteredRows = dummyData.filter((r) => {
+	const filteredRows = logs.filter((r) => {
 		const matchesSearch =
 			normalize(r.action).includes(normalize(search)) ||
 			normalize(r.process_by).includes(normalize(search));
@@ -178,18 +105,47 @@ export default function LogsPage() {
 		setShowModal(true);
 	};
 
+	// Grouped items for modal
 	const groupedItems = {};
-	if (form.items) {
-		form.items.forEach((i) => {
-			if (!groupedItems[i.account_name])
-				groupedItems[i.account_name] = [];
-			groupedItems[i.account_name].push(i);
-		});
+
+	const reservationDetail = form["RESERVATION DETAIL"]?.[0];
+	const soldItems = form["SOLD ITEM"];
+	const reservedProducts = reservationDetail?.["RESERVED PRODUCT"];
+
+	// Combine items depending on log type
+	let items = [];
+
+	// 1️⃣ Use explicit `form.items` if available
+	if (form.items?.length > 0) {
+		items = form.items;
+	}
+	// 2️⃣ Sold items first
+	else if (soldItems?.length > 0) {
+		items = soldItems.map((i) => ({
+			account_name: i.account_name,
+			product_name: i.product_name,
+			price_each: i.price_each,
+			qty: i.quantity,
+		}));
+	}
+	// 3️⃣ Cancelled or plain Reserved
+	else if (reservedProducts?.length > 0) {
+		items = reservedProducts.map((i) => ({
+			account_name: i.account_name,
+			product_name: i.product_name,
+			price_each: i.price_each,
+			qty: i.quantity,
+		}));
 	}
 
-	const grandTotal = form.items
-		? form.items.reduce((sum, i) => sum + i.price_each * i.qty, 0)
-		: 0;
+	// Group by account
+	items.forEach((i) => {
+		if (!groupedItems[i.account_name]) groupedItems[i.account_name] = [];
+		groupedItems[i.account_name].push(i);
+	});
+	const grandTotal = Object.values(groupedItems)
+		.flat()
+		.reduce((sum, i) => sum + i.price_each * i.qty, 0);
 
 	return (
 		<div>
@@ -213,10 +169,9 @@ export default function LogsPage() {
 						style={{ maxWidth: "200px" }}
 					/>
 				</div>
-
 				<button
 					className="btn btn-primary"
-					onClick={downloadSalesReportImage}
+					onClick={() => downloadSalesReportImage()}
 				>
 					Download Sales Report
 				</button>
@@ -239,18 +194,16 @@ export default function LogsPage() {
 							</tr>
 						</thead>
 						<tbody>
-							{filteredRows.map((row) => (
-								<tr
-									key={row.id}
-									onClick={() => handleRowClick(row)}
-									style={{ cursor: "pointer" }}
-								>
-									<td>{row.when}</td>
-									<td>{row.action}</td>
-									<td>{row.process_by}</td>
+							{loading ? (
+								<tr>
+									<td
+										colSpan="3"
+										className="text-center text-muted"
+									>
+										Loading...
+									</td>
 								</tr>
-							))}
-							{filteredRows.length === 0 && (
+							) : filteredRows.length === 0 ? (
 								<tr>
 									<td
 										colSpan="3"
@@ -259,6 +212,22 @@ export default function LogsPage() {
 										No matching records
 									</td>
 								</tr>
+							) : (
+								filteredRows.map((row) => (
+									<tr
+										key={row.id}
+										onClick={() => handleRowClick(row)}
+										style={{ cursor: "pointer" }}
+									>
+										<td>
+											{new Date(
+												row.when
+											).toLocaleString()}
+										</td>
+										<td>{row.action}</td>
+										<td>{row.process_by}</td>
+									</tr>
+								))
 							)}
 						</tbody>
 					</table>
@@ -290,32 +259,56 @@ export default function LogsPage() {
 									</div>
 									<div className="d-flex justify-content-between">
 										<strong>Log Created:</strong>
-										<span>{form.when}</span>
+										<span>
+											{new Date(
+												form.when
+											).toLocaleString()}
+										</span>
 									</div>
 
-									{/* Inventory */}
-									{[
-										"Inventory → Edit",
-										"Inventory → Delete",
-										"Inventory → Inserted",
-									].includes(form.action) &&
-										form.details && (
-											<div style={{ marginTop: "10px" }}>
-												{form.details.map((d, idx) => (
+									{/* Inventory Logs (Group 2) */}
+									{form["INVENTORY LOG DETAIL"]?.length >
+										0 && (
+										<div>
+											<strong
+												style={{
+													marginTop: "10px",
+													display: "block",
+												}}
+											>
+												Accounts & Products
+											</strong>
+											{form["INVENTORY LOG DETAIL"].map(
+												(d, idx) => (
 													<div
 														key={idx}
 														className="border p-2 mb-2 rounded"
 													>
 														<div className="d-flex justify-content-between">
+															<strong>
+																Action:
+															</strong>
+															<span>
+																{d.log
+																	?.action ||
+																	"Unknown"}
+															</span>
+														</div>
+														<div className="d-flex justify-content-between">
 															<strong>ID:</strong>
-															<span>{d.id}</span>
+															<span>
+																{d.inventory_id}
+															</span>
 														</div>
 														<div className="d-flex justify-content-between">
 															<strong>
 																Account:
 															</strong>
 															<span>
-																{d.account_name}
+																{
+																	d.inventory
+																		?.account_name
+																}
 															</span>
 														</div>
 														<div className="d-flex justify-content-between">
@@ -323,7 +316,10 @@ export default function LogsPage() {
 																Product:
 															</strong>
 															<span>
-																{d.product_name}
+																{
+																	d.inventory
+																		?.product_name
+																}
 															</span>
 														</div>
 														<div className="d-flex justify-content-between">
@@ -331,7 +327,10 @@ export default function LogsPage() {
 																Stocks:
 															</strong>
 															<span>
-																{d.stocks}
+																{
+																	d.inventory
+																		?.stocks
+																}
 															</span>
 														</div>
 														<div className="d-flex justify-content-between">
@@ -339,7 +338,11 @@ export default function LogsPage() {
 																Price:
 															</strong>
 															<span>
-																₱{d.price_each}
+																₱
+																{
+																	d.inventory
+																		?.price_each
+																}
 															</span>
 														</div>
 														<div className="d-flex justify-content-between">
@@ -347,85 +350,129 @@ export default function LogsPage() {
 																Inserted By:
 															</strong>
 															<span>
-																{d.inserted_by}
-															</span>
-														</div>
-														<div className="d-flex justify-content-between">
-															<strong>
-																Date Inserted:
-															</strong>
-															<span>
 																{
-																	d.date_inserted
+																	d.inventory
+																		?.inserted_by
 																}
 															</span>
 														</div>
 													</div>
-												))}
-											</div>
-										)}
+												)
+											)}
+										</div>
+									)}
 
-									{/* Reserve or Sell */}
-									{form.items && (
+									{/* Transaction Items */}
+									{Object.keys(groupedItems).length > 0 && (
 										<div>
-											<div className="d-flex justify-content-between">
-												<strong>Reference #:</strong>
-												<span>
-													{form.reference || "-"}
-												</span>
-											</div>
+											<h6
+												style={{
+													borderBottom:
+														"2px solid #ccc",
+													paddingBottom: "5px",
+													marginBottom: "10px",
+													marginTop: "10px",
+												}}
+											>
+												Transactions
+											</h6>
 
-											{/* Status display */}
-											{form.action === "Reserve" && (
-												<div className="d-flex justify-content-between mt-2">
-													<strong>Status:</strong>
+											{form.reference_number && (
+												<div className="d-flex justify-content-between">
+													<strong>
+														Reference #:
+													</strong>
 													<span>
-														{[
-															"Reserved",
-															"Reserved → Sold",
-															"Reserved → Cancelled",
-														].includes(form.status)
-															? form.status
-															: "Reserved"}
+														{form.reference_number}
 													</span>
 												</div>
 											)}
 
-											{form.action === "Reserve" && (
+											{form[
+												"RESERVATION DETAIL"
+											]?.[0] && (
 												<>
-													<div className="d-flex justify-content-between mt-2">
-														<strong>
-															Date Reserved:
-														</strong>
-														<span>
-															{form.date_reserved}
-														</span>
-													</div>
-													<div className="d-flex justify-content-between mt-2">
-														<strong>
-															Date Pickup:
-														</strong>
-														<span>
-															{form.date_pickup}
-														</span>
-													</div>
+													{(() => {
+														const reservation =
+															form[
+																"RESERVATION DETAIL"
+															][0];
+														return (
+															<>
+																<div className="d-flex justify-content-between mt-2">
+																	<strong>
+																		Status:
+																	</strong>
+																	<span>
+																		{reservation.status ||
+																			"Reserved"}
+																	</span>
+																</div>
+
+																{/* Show dates only if it was reserved at some point */}
+																{reservation.status.includes(
+																	"Reserved"
+																) && (
+																	<>
+																		<div className="d-flex justify-content-between mt-2">
+																			<strong>
+																				Date
+																				Reserved:
+																			</strong>
+																			<span>
+																				{
+																					reservation.date_reserved
+																				}
+																			</span>
+																		</div>
+																		<div className="d-flex justify-content-between mt-2">
+																			<strong>
+																				Date
+																				Pickup:
+																			</strong>
+																			<span>
+																				{
+																					reservation.date_pickup
+																				}
+																			</span>
+																		</div>
+																	</>
+																)}
+
+																{/* Sold info */}
+																{reservation.status.includes(
+																	"Sold"
+																) && (
+																	<div className="d-flex justify-content-between mt-2">
+																		<strong>
+																			Action:
+																		</strong>
+																		<span>
+																			Sold
+																		</span>
+																	</div>
+																)}
+
+																{/* Cancelled info */}
+																{reservation.status.includes(
+																	"Cancelled"
+																) && (
+																	<div className="d-flex justify-content-between mt-2">
+																		<strong>
+																			Action:
+																		</strong>
+																		<span>
+																			Cancelled
+																		</span>
+																	</div>
+																)}
+															</>
+														);
+													})()}
 												</>
 											)}
 
-											{form.action === "Sell" && (
-												<div className="d-flex justify-content-between mt-2">
-													<strong>Action:</strong>
-													<span>Sold</span>
-												</div>
-											)}
-
-											<div className="d-flex justify-content-between align-items-center mt-2">
-												<strong>Processed by:</strong>
-												<span>
-													{form.process_by || "Ekong"}
-												</span>
-											</div>
-
+											{/* Products */}
 											<strong
 												style={{
 													marginTop: "10px",
