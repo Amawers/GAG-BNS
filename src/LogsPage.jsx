@@ -6,6 +6,19 @@ export default function LogsPage() {
 	const [search, setSearch] = useState("");
 	const [filterDate, setFilterDate] = useState("");
 
+	function formatDateTime(isoString) {
+		const date = new Date(isoString);
+		const options = {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+			hour: "numeric",
+			minute: "2-digit",
+			hour12: true,
+		};
+		return date.toLocaleString("en-US", options);
+	}
+
 	const dummyData = [
 		{
 			id: 1,
@@ -29,6 +42,9 @@ export default function LogsPage() {
 			when: "8/29/2025, 1:00 PM",
 			action: "Reserve",
 			reference: "TRX002",
+			date_reserved: "8/31/2025, 6:00 PM",
+			date_pickup: "8/30/2025, 3:00 PM",
+
 			process_by: "Ann",
 			items: [
 				{
@@ -273,12 +289,16 @@ export default function LogsPage() {
 										<span>{form.process_by}</span>
 									</div>
 									<div className="d-flex justify-content-between">
-										<strong>When:</strong>
+										<strong>Log Created:</strong>
 										<span>{form.when}</span>
 									</div>
 
 									{/* Inventory */}
-									{form.action === "Inventory" &&
+									{[
+										"Inventory → Edit",
+										"Inventory → Delete",
+										"Inventory → Inserted",
+									].includes(form.action) &&
 										form.details && (
 											<div style={{ marginTop: "10px" }}>
 												{form.details.map((d, idx) => (
@@ -346,84 +366,122 @@ export default function LogsPage() {
 										)}
 
 									{/* Reserve or Sell */}
-									{(form.action === "Reserve" ||
-										form.action === "Sell") &&
-										form.items && (
-											<div>
-												<div className="d-flex justify-content-between">
-													<strong>
-														Reference #:
-													</strong>
+									{form.items && (
+										<div>
+											<div className="d-flex justify-content-between">
+												<strong>Reference #:</strong>
+												<span>
+													{form.reference || "-"}
+												</span>
+											</div>
+
+											{/* Status display */}
+											{form.action === "Reserve" && (
+												<div className="d-flex justify-content-between mt-2">
+													<strong>Status:</strong>
 													<span>
-														{form.reference || "-"}
+														{[
+															"Reserved",
+															"Reserved → Sold",
+															"Reserved → Cancelled",
+														].includes(form.status)
+															? form.status
+															: "Reserved"}
 													</span>
 												</div>
+											)}
 
-												<strong
-													style={{
-														marginTop: "10px",
-														display: "block",
-													}}
-												>
-													Accounts & Products
-												</strong>
-												<div
-													style={{
-														maxHeight: "150px",
-														overflowY: "auto",
-														border: "1px solid #ddd",
-														padding: "5px",
-														marginTop: "5px",
-													}}
-												>
-													{Object.entries(
-														groupedItems
-													).map(([acc, products]) => (
-														<div
-															key={acc}
-															className="mb-2"
-														>
-															<strong>
-																{acc}
-															</strong>
-															<ul className="mb-0">
-																{products.map(
-																	(
-																		p,
-																		idx
-																	) => (
-																		<li
-																			key={
-																				idx
-																			}
-																		>
-																			{
-																				p.product_name
-																			}{" "}
-																			| ₱
-																			{
-																				p.price_each
-																			}{" "}
-																			|
-																			qty:{" "}
-																			{
-																				p.qty
-																			}
-																		</li>
-																	)
-																)}
-															</ul>
-														</div>
-													))}
-												</div>
+											{form.action === "Reserve" && (
+												<>
+													<div className="d-flex justify-content-between mt-2">
+														<strong>
+															Date Reserved:
+														</strong>
+														<span>
+															{form.date_reserved}
+														</span>
+													</div>
+													<div className="d-flex justify-content-between mt-2">
+														<strong>
+															Date Pickup:
+														</strong>
+														<span>
+															{form.date_pickup}
+														</span>
+													</div>
+												</>
+											)}
+
+											{form.action === "Sell" && (
 												<div className="d-flex justify-content-between mt-2">
-													<strong>
-														Grand Total:
-													</strong>
-													<span>₱{grandTotal}</span>
+													<strong>Action:</strong>
+													<span>Sold</span>
 												</div>
+											)}
+
+											<div className="d-flex justify-content-between align-items-center mt-2">
+												<strong>Processed by:</strong>
+												<span>
+													{form.process_by || "Ekong"}
+												</span>
 											</div>
-										)}
+
+											<strong
+												style={{
+													marginTop: "10px",
+													display: "block",
+												}}
+											>
+												Accounts & Products
+											</strong>
+											<div
+												style={{
+													maxHeight: "150px",
+													overflowY: "auto",
+													border: "1px solid #ddd",
+													padding: "5px",
+													marginTop: "5px",
+												}}
+											>
+												{Object.entries(
+													groupedItems
+												).map(([acc, products]) => (
+													<div
+														key={acc}
+														className="mb-2"
+													>
+														<strong>{acc}</strong>
+														<ul className="mb-0">
+															{products.map(
+																(p, idx) => (
+																	<li
+																		key={
+																			idx
+																		}
+																	>
+																		{
+																			p.product_name
+																		}{" "}
+																		| ₱
+																		{
+																			p.price_each
+																		}{" "}
+																		| qty:{" "}
+																		{p.qty}
+																	</li>
+																)
+															)}
+														</ul>
+													</div>
+												))}
+											</div>
+
+											<div className="d-flex justify-content-between mt-2">
+												<strong>Grand Total:</strong>
+												<span>₱{grandTotal}</span>
+											</div>
+										</div>
+									)}
 								</div>
 							</div>
 						</div>
