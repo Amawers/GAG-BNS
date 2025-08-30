@@ -2,119 +2,139 @@ import { supabase } from "../supabaseClient"; // ✅ make sure path is correct
 import Swal from "sweetalert2";
 
 export default function AddInventoryModal({ show, form, setForm, onClose }) {
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+	const handleChange = (e) => {
+		setForm({ ...form, [e.target.name]: e.target.value });
+	};
 
-  const handleSave = async () => {
-    const { error } = await supabase.from("INVENTORY").insert([
-      {
-        account_name: form.account,
-        product_name: form.product,
-        stocks: Number(form.stocks) || 0,
-        reserved: 0, // default 0
-        price_each: Number(form.price_each) || 0,
-        inserted_by: form.inserted_by || "Ekong",
-      },
-    ]);
+	const handleSave = async () => {
+		const { error } = await supabase.from("INVENTORY").insert([
+			{
+				account_name: form.account,
+				user_name: form.user,
+				product_name: form.product,
+				stocks: Number(form.stocks) || 0,
+				reserved: 0, // default 0
+				price_each: Number(form.price_each) || 0,
+				inserted_by: form.inserted_by || "Ekong",
+			},
+		]);
 
-    if (error) {
-      console.error("Insert error:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Insert failed",
-        text: error.message,
-      });
-    } else {
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "Inventory created!",
-        showConfirmButton: false,
-        timer: 2000,
-        timerProgressBar: true,
-      });
-      onClose();
-      setForm({});
-    }
-  };
+		if (error) {
+			console.error("Insert error:", error);
+			Swal.fire({
+				icon: "error",
+				title: "Insert failed",
+				text: error.message,
+			});
+		} else {
+			Swal.fire({
+				toast: true,
+				position: "top-end",
+				icon: "success",
+				title: "Inventory created!",
+				showConfirmButton: false,
+				timer: 2000,
+				timerProgressBar: true,
+			});
+			onClose();
+			setForm({});
+		}
+	};
 
-  if (!show) return null;
+	if (!show) return null;
 
-  return (
-    <div
-      className="modal fade show d-block"
-      tabIndex="-1"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-    >
-      <div className="modal-dialog">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">Add Inventory</h5>
-            <button type="button" className="btn-close" onClick={onClose}></button>
-          </div>
+	return (
+		<div
+			className="modal fade show d-block"
+			tabIndex="-1"
+			style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+		>
+			<div className="modal-dialog">
+				<div className="modal-content">
+					<div className="modal-header">
+						<h5 className="modal-title">Add Inventory</h5>
+						<button
+							type="button"
+							className="btn-close"
+							onClick={onClose}
+						></button>
+					</div>
 
-          <div className="modal-body">
-            <form className="d-flex flex-column gap-3">
+					<div className="modal-body">
+						<form className="d-flex flex-column gap-3">
+							<input
+								className="form-control"
+								name="account"
+								value={form.account || ""}
+								onChange={handleChange}
+								placeholder="Account"
+							/>
               <input
-                className="form-control"
-                name="account"
-                value={form.account || ""}
-                onChange={handleChange}
-                placeholder="Account"
-              />
-              <input
-                className="form-control"
-                name="product"
-                value={form.product || ""}
-                onChange={handleChange}
-                placeholder="Product"
-              />
-              <input
-                type="number"
-                className="form-control"
-                name="stocks"
-                value={form.stocks || ""}
-                onChange={handleChange}
-                placeholder="Stocks"
-              />
-              <div className="input-group">
-                <span className="input-group-text">₱</span>
-                <input
-                  type="number"
-                  className="form-control"
-                  name="price_each"
-                  value={form.price_each || ""}
-                  onChange={handleChange}
-                  placeholder="Price Each"
-                />
-              </div>
-              <select
-                className="form-select"
-                name="inserted_by"
-                value={form.inserted_by || ""}
-                onChange={handleChange}
-              >
-                <option value="" disabled hidden>
-                  Added by
-                </option>
-                <option value="Ekong">Ekong</option>
-                <option value="Ann">Ann</option>
-              </select>
-            </form>
-          </div>
+								className="form-control"
+								name="account"
+								value={form.user || ""}
+								onChange={handleChange}
+								placeholder="@User"
+							/>
+							<input
+								className="form-control"
+								name="product"
+								value={form.product || ""}
+								onChange={handleChange}
+								placeholder="Product"
+							/>
+							<input
+								type="number"
+								className="form-control"
+								name="stocks"
+								value={form.stocks || ""}
+								onChange={handleChange}
+								placeholder="Stocks"
+							/>
+							<div className="input-group">
+								<span className="input-group-text">₱</span>
+								<input
+									type="number"
+									className="form-control"
+									name="price_each"
+									value={form.price_each || ""}
+									onChange={handleChange}
+									placeholder="Price Each"
+								/>
+							</div>
+							<select
+								className="form-select"
+								name="inserted_by"
+								value={form.inserted_by || ""}
+								onChange={handleChange}
+							>
+								<option value="" disabled hidden>
+									Added by
+								</option>
+								<option value="Ekong">Ekong</option>
+								<option value="Ann">Ann</option>
+							</select>
+						</form>
+					</div>
 
-          <div className="modal-footer">
-            <button type="button" className="btn btn-success" onClick={handleSave}>
-              Save
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+					<div className="modal-footer">
+						<button
+							type="button"
+							className="btn btn-success"
+							onClick={handleSave}
+						>
+							Save
+						</button>
+						<button
+							type="button"
+							className="btn btn-secondary"
+							onClick={onClose}
+						>
+							Close
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
 }

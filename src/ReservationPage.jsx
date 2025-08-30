@@ -1,116 +1,80 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import supabase from "../config/supabase";
 
 export default function ReservationPage() {
 	const [showModal, setShowModal] = useState(false);
 	const [form, setForm] = useState({});
 	const [search, setSearch] = useState("");
+	const [reservations, setReservations] = useState([]);
 
-	const dummyData = [
-		{
-			id: 1,
-			reference: "TRX001",
-			date_reserved: "8/29/2025, 12:00 PM",
-			date_pickup: "9/1/2025, 3:00 PM",
-			status: "Pending",
-			process_by: "Ekong",
-			items: [
-				{
-					account_name: "xachi",
-					product_name: "T-Rex",
-					price_each: 95,
-					qty: 1,
-				},
-				{
-					account_name: "xachi",
-					product_name: "Butterfly",
-					price_each: 95,
-					qty: 2,
-				},
-				{
-					account_name: "xachi",
-					product_name: "Dragonfly",
-					price_each: 95,
-					qty: 1,
-				},
-				{
-					account_name: "xachi2",
-					product_name: "Mimic",
-					price_each: 95,
-					qty: 1,
-				},
-				{
-					account_name: "xachi2",
-					product_name: "Butterfly",
-					price_each: 95,
-					qty: 2,
-				},
-				{
-					account_name: "xachi2",
-					product_name: "Dragonfly",
-					price_each: 95,
-					qty: 1,
-				},
-				{
-					account_name: "xachi3",
-					product_name: "T-Rex",
-					price_each: 95,
-					qty: 1,
-				},
-				{
-					account_name: "xachi3",
-					product_name: "Dragonfly",
-					price_each: 95,
-					qty: 2,
-				},
-				{
-					account_name: "xachi3",
-					product_name: "Butterfly",
-					price_each: 95,
-					qty: 1,
-				},
-			],
-		},
-		{
-			id: 2,
-			reference: "TRX002",
-			date_reserved: "8/28/2025, 10:30 AM",
-			date_pickup: "8/30/2025, 2:00 PM",
-			status: "Confirmed",
-			process_by: "Ann",
-			items: [
-				{
-					account_name: "xachi3",
-					product_name: "Dragonfly",
-					price_each: 95,
-					qty: 3,
-				},
-				{
-					account_name: "xachi2",
-					product_name: "Butterfly",
-					price_each: 95,
-					qty: 1,
-				},
-				{
-					account_name: "xachi",
-					product_name: "T-Rex",
-					price_each: 95,
-					qty: 2,
-				},
-			],
-		},
-	];
+	function formatDateTime(isoString) {
+		const date = new Date(isoString);
+		const options = {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+			hour: "numeric",
+			minute: "2-digit",
+			hour12: true,
+		};
+		return date.toLocaleString("en-US", options);
+	}
+
+	const fetchReservations = async () => {
+		const { data, error } = await supabase
+			.from("RESERVATION DETAIL")
+			.select(
+				`
+      id,
+      log_id,
+      reference_number,
+      date_reserved,
+      date_pickup,
+      status,
+      process_by,
+      "RESERVED PRODUCT" (
+        account_name,
+        product_name,
+        price_each,
+        quantity
+      )
+    `
+			)
+			.order("date_reserved", { ascending: false });
+
+		if (!error) setReservations(data);
+		else console.error(error);
+	};
+
+	useEffect(() => {
+		fetchReservations();
+
+		const channel = supabase
+			.channel("reservation-changes")
+			.on(
+				"postgres_changes",
+				{ event: "*", schema: "public", table: "RESERVATION DETAIL" },
+				(payload) => {
+					console.log("Realtime update:", payload);
+					fetchReservations();
+				}
+			)
+			.subscribe((status) => console.log("Channel status:", status));
+
+		return () => supabase.removeChannel(channel);
+	}, []);
 
 	const normalize = (str) =>
-		str
+		(str || "")
 			.toLowerCase()
 			.normalize("NFD")
 			.replace(/[\u0300-\u036f]/g, "")
 			.replace(/[^a-z0-9]/gi, "");
 
-	const filteredRows = dummyData.filter(
+	const filteredRows = reservations.filter(
 		(r) =>
-			normalize(r.reference).includes(normalize(search)) ||
+			normalize(r.reference_number).includes(normalize(search)) ||
 			normalize(r.status).includes(normalize(search))
 	);
 
@@ -119,18 +83,91 @@ export default function ReservationPage() {
 		setShowModal(true);
 	};
 
-	const grandTotal = form.items
-		? form.items.reduce((sum, i) => sum + i.price_each * i.qty, 0)
+	const grandTotal = form["RESERVED PRODUCT"]
+		? form["RESERVED PRODUCT"].reduce(
+				(sum, i) => sum + i.price_each * i.quantity,
+				0
+		  )
 		: 0;
 
 	const groupedItems = {};
-	if (form.items) {
-		form.items.forEach((i) => {
+	if (form["RESERVED PRODUCT"]) {
+		form["RESERVED PRODUCT"].forEach((i) => {
 			if (!groupedItems[i.account_name])
 				groupedItems[i.account_name] = [];
 			groupedItems[i.account_name].push(i);
 		});
 	}
+
+	const confirmReservation = async (reservationId) => {
+		try {
+			const { data, error } = await supabase
+				.from("RESERVATION DETAIL")
+				.update({ status: "Confirmed" })
+				.eq("id", reservationId);
+
+			if (error) throw error;
+
+			Swal.fire({
+				toast: true,
+				position: "top-end",
+				icon: "success",
+				title: "Reservation confirmed!",
+				showConfirmButton: false,
+				timer: 2000,
+				timerProgressBar: true,
+			});
+		} catch (err) {
+			Swal.fire({
+				icon: "error",
+				title: "Error confirming reservation",
+				text: err.message,
+			});
+		}
+	};
+
+	const getStatusBadge = (status) => {
+		switch (status) {
+			case "Confirmed":
+				return "badge bg-success"; // green
+			case "Pending":
+				return "badge bg-secondary"; // grey
+			case "Cancelled":
+				return "badge bg-danger"; // red
+			default:
+				return "badge bg-light text-dark";
+		}
+	};
+
+	const cancelReservation = async (reservationId) => {
+		try {
+			const { error } = await supabase
+				.from("RESERVATION DETAIL")
+				.update({ status: "Cancelled" })
+				.eq("id", reservationId);
+
+			if (error) throw error;
+
+			Swal.fire({
+				toast: true,
+				position: "top-end",
+				icon: "success",
+				title: "Reservation cancelled!",
+				showConfirmButton: false,
+				timer: 2000,
+				timerProgressBar: true,
+			});
+
+			fetchReservations();
+			setShowModal(false);
+		} catch (err) {
+			Swal.fire({
+				icon: "error",
+				title: "Error cancelling reservation",
+				text: err.message,
+			});
+		}
+	};
 
 	return (
 		<div>
@@ -171,10 +208,18 @@ export default function ReservationPage() {
 									onClick={() => handleRowClick(row)}
 									style={{ cursor: "pointer" }}
 								>
-									<td>{row.reference}</td>
-									<td>{row.date_reserved}</td>
-									<td>{row.date_pickup}</td>
-									<td>{row.status}</td>
+									<td>{row.reference_number}</td>
+									<td>{formatDateTime(row.date_reserved)}</td>
+									<td>{formatDateTime(row.date_pickup)}</td>
+									<td>
+										<span
+											className={getStatusBadge(
+												row.status
+											)}
+										>
+											{row.status}
+										</span>
+									</td>{" "}
 								</tr>
 							))}
 							{filteredRows.length === 0 && (
@@ -217,11 +262,15 @@ export default function ReservationPage() {
 									</div>
 									<div className="d-flex justify-content-between">
 										<strong>Date Reserved:</strong>
-										<span>{form.date_reserved}</span>
+										<span>
+											{formatDateTime(form.date_reserved)}
+										</span>
 									</div>
 									<div className="d-flex justify-content-between">
 										<strong>Date Pickup:</strong>
-										<span>{form.date_pickup}</span>
+										<span>
+											{formatDateTime(form.date_pickup)}
+										</span>
 									</div>
 									<div className="d-flex justify-content-between align-items-center mt-2">
 										<strong>Processed by:</strong>
@@ -269,7 +318,9 @@ export default function ReservationPage() {
 																			p.price_each
 																		}{" "}
 																		| qty:{" "}
-																		{p.qty}
+																		{
+																			p.quantity
+																		}
 																	</li>
 																)
 															)}
@@ -285,73 +336,62 @@ export default function ReservationPage() {
 							<div className="modal-footer border-0 justify-content-between align-items-center">
 								<strong>Grand Total: ₱{grandTotal}</strong>
 								<div className="d-flex gap-2">
-									<button
-										className="btn btn-sm btn-danger"
-										onClick={() => {
-											Swal.fire({
-												title: "Cancel this reservation?",
-												icon: "warning",
-												showCancelButton: true,
-												confirmButtonText:
-													"Yes, cancel",
-												cancelButtonText: "No",
-												confirmButtonColor: "#dc3545",
-											}).then((result) => {
-												if (result.isConfirmed) {
-													console.log(
-														"Cancelled reservation:",
-														form.id
-													);
-													setShowModal(false);
+									{form.status === "Pending" && (
+										<>
+											<button
+												className="btn btn-sm btn-danger"
+												onClick={() => {
 													Swal.fire({
-														toast: true,
-														position: "top-end",
-														icon: "success",
-														title: "Reservation cancelled!",
-														showConfirmButton: false,
-														timer: 2000,
-														timerProgressBar: true,
+														title: "Cancel this reservation?",
+														icon: "warning",
+														showCancelButton: true,
+														confirmButtonText:
+															"Yes, cancel",
+														cancelButtonText: "No",
+														confirmButtonColor:
+															"#dc3545",
+													}).then((result) => {
+														if (
+															result.isConfirmed
+														) {
+															cancelReservation(
+																form.id
+															);
+														}
 													});
-												}
-											});
-										}}
-									>
-										Cancel Reservation
-									</button>
+												}}
+											>
+												Cancel Reservation
+											</button>
 
-									<button
-										className="btn btn-sm btn-success"
-										onClick={() => {
-											Swal.fire({
-												title: "Confirm this reservation?",
-												icon: "question",
-												showCancelButton: true,
-												confirmButtonText:
-													"Yes, confirm",
-												cancelButtonText: "No",
-												confirmButtonColor: "#28a745",
-											}).then((result) => {
-												if (result.isConfirmed) {
-													console.log(
-														"Confirmed reservation:",
-														form.id
-													);
-													setShowModal(false);
+											<button
+												className="btn btn-sm btn-success"
+												onClick={() => {
 													Swal.fire({
-														toast: true,
-														position: "top-end",
-														icon: "success",
-														title: "Reservation confirmed!",
-														showConfirmButton: false,
-														timer: 2000,
-														timerProgressBar: true,
+														title: "Confirm this reservation?",
+														icon: "question",
+														showCancelButton: true,
+														confirmButtonText:
+															"Yes, confirm",
+														cancelButtonText: "No",
+														confirmButtonColor:
+															"#28a745",
+													}).then((result) => {
+														if (
+															result.isConfirmed
+														) {
+															confirmReservation(
+																form.id
+															);
+															setShowModal(false);
+														}
 													});
-												}
-											});
-										}}
-									>
-										Confirm
-									</button>
+												}}
+											>
+												Confirm
+											</button>
+										</>
+									)}
 								</div>
 							</div>
 						</div>

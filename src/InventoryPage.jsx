@@ -449,13 +449,12 @@ export default function InventoryPage() {
 															{value}
 														</span>
 													) : (
-														<span
-															style={{
-																color: "#333",
-															}}
-														>
-															{displayValue}
-														</span>
+														<span style={{ color: "#333" }}>
+  {key === "account_name" 
+    ? `${value} ${form.user_name ? `(@${form.user_name})` : ""}` 
+    : displayValue}
+</span>
+
 													)}
 												</div>
 											);

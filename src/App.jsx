@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink } from "react-router-do
 import InventoryPage from "../src/InventoryPage";
 import LogsPage from "../src/LogsPage"
 import TransactionPage from "../src/TransactionPage"
+import ReservationPage from "../src/ReservationPage"
 
 function Layout({ children }) {
   return (
@@ -80,9 +81,6 @@ function Layout({ children }) {
     </div>
   );
 }
-
-// Placeholder Pages
-const ReservationPage = () => <div>📝 Reservation Page</div>;
 
 export default function App() {
   return (

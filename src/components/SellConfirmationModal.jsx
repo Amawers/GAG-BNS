@@ -26,7 +26,7 @@ export default function TransactionConfirmationModal({
 			}
 			text += `🛒 ${name} x ${item.qty} = ₱${
 				item.price_each * item.qty
-			} (${item.account_name} ${item.user_name})\n`;
+			} ${item.account_name}\n`;
 		});
 
 		text += "--------------------------\n";
@@ -40,7 +40,7 @@ export default function TransactionConfirmationModal({
 			accountMap[item.account_name] = item.user_name; // last one wins
 		});
 		Object.entries(accountMap).forEach(([name, user]) => {
-			text += `👤 ${name} (${user})\n`;
+			text += `👤 ${name} (@${user})\n`;
 		});
 
 		// Processor
