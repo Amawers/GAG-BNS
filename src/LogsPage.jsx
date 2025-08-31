@@ -10,6 +10,19 @@ export default function LogsPage() {
 	const [search, setSearch] = useState("");
 	const [filterDate, setFilterDate] = useState("");
 
+	function formatDateTime(isoString) {
+		const date = new Date(isoString);
+		const options = {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+			hour: "numeric",
+			minute: "2-digit",
+			hour12: true,
+		};
+		return date.toLocaleString("en-US", options);
+	}
+
 	const fetchLogs = async () => {
 		setLoading(true);
 
@@ -220,11 +233,7 @@ export default function LogsPage() {
 										onClick={() => handleRowClick(row)}
 										style={{ cursor: "pointer" }}
 									>
-										<td>
-											{new Date(
-												row.when
-											).toLocaleString()}
-										</td>
+										<td>{formatDateTime(row.when)}</td>
 										<td>{row.action}</td>
 										<td>{row.process_by}</td>
 									</tr>
@@ -260,11 +269,7 @@ export default function LogsPage() {
 									</div>
 									<div className="d-flex justify-content-between">
 										<strong>Log Created:</strong>
-										<span>
-											{new Date(
-												form.when
-											).toLocaleString()}
-										</span>
+										<span>{formatDateTime(form.when)}</span>
 									</div>
 
 									{/* Inventory Logs (Group 2) */}
@@ -398,10 +403,15 @@ export default function LogsPage() {
 															][0];
 														return (
 															<>
-															<div className="d-flex justify-content-between mt-2">
-            <strong>Customer:</strong>
-            <span>{reservation.customer_name || "-"}</span>
-          </div>
+																<div className="d-flex justify-content-between mt-2">
+																	<strong>
+																		Customer:
+																	</strong>
+																	<span>
+																		{reservation.customer_name ||
+																			"-"}
+																	</span>
+																</div>
 																<div className="d-flex justify-content-between mt-2">
 																	<strong>
 																		Status:

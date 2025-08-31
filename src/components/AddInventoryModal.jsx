@@ -1,19 +1,25 @@
-import { supabase } from "../supabaseClient"; // ✅ make sure path is correct
+import { useState } from "react";
+import { supabase } from "../supabaseClient";
 import Swal from "sweetalert2";
 
 export default function AddInventoryModal({ show, form, setForm, onClose, refresh }) {
+	const [saving, setSaving] = useState(false);
+
 	const handleChange = (e) => {
 		setForm({ ...form, [e.target.name]: e.target.value });
 	};
 
 	const handleSave = async () => {
+		if (saving) return; // prevent double trigger
+		setSaving(true);
+
 		const { error } = await supabase.from("INVENTORY").insert([
 			{
 				account_name: form.account,
 				user_name: form.user,
 				product_name: form.product,
 				stocks: Number(form.stocks) || 0,
-				reserved: 0, // default 0
+				reserved: 0,
 				price_each: Number(form.price_each) || 0,
 				inserted_by: form.inserted_by || "Ekong",
 			},
@@ -40,6 +46,8 @@ export default function AddInventoryModal({ show, form, setForm, onClose, refres
 			setForm({});
 			refresh();
 		}
+
+		setSaving(false);
 	};
 
 	if (!show) return null;
@@ -54,11 +62,7 @@ export default function AddInventoryModal({ show, form, setForm, onClose, refres
 				<div className="modal-content">
 					<div className="modal-header">
 						<h5 className="modal-title">Add Inventory</h5>
-						<button
-							type="button"
-							className="btn-close"
-							onClick={onClose}
-						></button>
+						<button type="button" className="btn-close" onClick={onClose}></button>
 					</div>
 
 					<div className="modal-body">
@@ -113,7 +117,7 @@ export default function AddInventoryModal({ show, form, setForm, onClose, refres
 									Added by
 								</option>
 								<option value="Ekong">Ekong</option>
-								<option value="Ann">Ann</option>
+								<option value="Xachi">Xachi</option>
 							</select>
 						</form>
 					</div>
@@ -123,14 +127,11 @@ export default function AddInventoryModal({ show, form, setForm, onClose, refres
 							type="button"
 							className="btn btn-success"
 							onClick={handleSave}
+							disabled={saving}
 						>
-							Save
+							{saving ? "Saving..." : "Save"}
 						</button>
-						<button
-							type="button"
-							className="btn btn-secondary"
-							onClick={onClose}
-						>
+						<button type="button" className="btn btn-secondary" onClick={onClose}>
 							Close
 						</button>
 					</div>

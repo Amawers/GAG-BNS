@@ -12,7 +12,7 @@ export default function TransactionConfirmationModal({
 
 	const copyReceipt = () => {
 		let text = "💰 GCASH (SEND SS)\n\n";
-		text += "📱 09176618217 CJD\n\n";
+		text += processor === "Ekong" ? "📱 09176618217 CJD\n\n" : "📱 09639635412 VS\n\n";		
 		text += "----------------------\n";
 		text += "💻 TRANSACTION \n";
 		text += "----------------------\n";
@@ -112,7 +112,7 @@ export default function TransactionConfirmationModal({
 								onChange={(e) => setProcessor(e.target.value)}
 							>
 								<option value="Ekong">Ekong</option>
-								<option value="Ann">Ann</option>
+								<option value="Xachi">Xachi</option>
 							</select>
 						</div>
 
