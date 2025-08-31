@@ -257,14 +257,17 @@ export default function InventoryPage() {
 								<th>Product</th>
 								<th>Stocks</th>
 								<th>Reserved</th>
-								<th><img
+								<th>
+									<img
 										src={avail}
 										alt="dino gif"
 										style={{
 											width: "22px",
 											height: "auto",
 										}}
-									/> Available</th>
+									/>{" "}
+									Available
+								</th>
 								<th>
 									<img
 										src={money}
@@ -289,9 +292,18 @@ export default function InventoryPage() {
 									<td>{row.product_name}</td>
 									<td>{row.stocks}</td>
 									<td>{row.reserved}</td>
-<td style={{ color: "#4caf50", fontWeight: "bold" }}>
-  {row.stocks - row.reserved}
-</td>
+									<td
+										style={{
+											color:
+												row.stocks - row.reserved <= 0
+													? "red"
+													: "#4caf50",
+											fontWeight: "bold",
+										}}
+									>
+										{row.stocks - row.reserved}
+									</td>
+
 									<td>₱{row.price_each}</td>
 								</tr>
 							))}
@@ -456,7 +468,7 @@ export default function InventoryPage() {
 																}
 															/>
 														)
-													) : key === "price_each" ? (
+													) : key === "price_each" || key === "product_sales" ? (
 														<span
 															style={{
 																color: "#333",
