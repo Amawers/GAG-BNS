@@ -7,9 +7,9 @@ export default function ReservationPage() {
 	const [form, setForm] = useState({});
 	const [search, setSearch] = useState("");
 	const [reservations, setReservations] = useState([]);
-// new states
-const [statusFilter, setStatusFilter] = useState("");
-const [dateFilter, setDateFilter] = useState("");
+	// new states
+	const [statusFilter, setStatusFilter] = useState("");
+	const [dateFilter, setDateFilter] = useState("");
 
 	function formatDateTime(isoString) {
 		const date = new Date(isoString);
@@ -79,20 +79,20 @@ const [dateFilter, setDateFilter] = useState("");
 			.replace(/[^a-z0-9]/gi, "");
 
 	// filtered rows
-const filteredRows = reservations.filter((r) => {
-  const matchesSearch =
-    normalize(r.reference_number).includes(normalize(search)) ||
-    normalize(r.status).includes(normalize(search));
+	const filteredRows = reservations.filter((r) => {
+		const matchesSearch =
+			normalize(r.reference_number).includes(normalize(search)) ||
+			normalize(r.status).includes(normalize(search));
 
-  const matchesStatus =
-    statusFilter === "" || r.status === statusFilter;
+		const matchesStatus = statusFilter === "" || r.status === statusFilter;
 
-  const matchesDate =
-    dateFilter === "" ||
-    new Date(r.date_reserved).toLocaleDateString("en-CA") === dateFilter;
+		const matchesDate =
+			dateFilter === "" ||
+			new Date(r.date_reserved).toLocaleDateString("en-CA") ===
+				dateFilter;
 
-  return matchesSearch && matchesStatus && matchesDate;
-});
+		return matchesSearch && matchesStatus && matchesDate;
+	});
 
 	const handleRowClick = (row) => {
 		setForm(row);
@@ -124,7 +124,7 @@ const filteredRows = reservations.filter((r) => {
 
 			if (error) throw error;
 
-			fetchReservations()
+			fetchReservations();
 
 			Swal.fire({
 				toast: true,
@@ -159,10 +159,12 @@ const filteredRows = reservations.filter((r) => {
 
 	const cancelReservation = async (reservationId) => {
 		try {
-			const { error } = await supabase
-				.from("RESERVATION DETAIL")
-				.update({ status: "Cancelled" })
-				.eq("id", reservationId);
+			const { error } = await supabase.rpc(
+				"cancel_reservation_transaction",
+				{
+					p_reservation_id: reservationId,
+				}
+			);
 
 			if (error) throw error;
 
@@ -192,39 +194,38 @@ const filteredRows = reservations.filter((r) => {
 			<h5 className="mb-3">Reservations</h5>
 
 			<div className="d-flex gap-2 mb-2">
-  {/* search */}
-  <input
-    type="text"
-    className="form-control"
-    placeholder="Search..."
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-    style={{ maxWidth: "200px" }}
-  />
+				{/* search */}
+				<input
+					type="text"
+					className="form-control"
+					placeholder="Search..."
+					value={search}
+					onChange={(e) => setSearch(e.target.value)}
+					style={{ maxWidth: "200px" }}
+				/>
 
-  {/* status dropdown */}
-  <select
-    className="form-select"
-    value={statusFilter}
-    onChange={(e) => setStatusFilter(e.target.value)}
-    style={{ maxWidth: "150px" }}
-  >
-    <option value="">All Status</option>
-    <option value="Pending">Pending</option>
-    <option value="Confirmed">Confirmed</option>
-    <option value="Cancelled">Cancelled</option>
-  </select>
+				{/* status dropdown */}
+				<select
+					className="form-select"
+					value={statusFilter}
+					onChange={(e) => setStatusFilter(e.target.value)}
+					style={{ maxWidth: "150px" }}
+				>
+					<option value="">All Status</option>
+					<option value="Pending">Pending</option>
+					<option value="Confirmed">Confirmed</option>
+					<option value="Cancelled">Cancelled</option>
+				</select>
 
-  {/* date filter */}
-  <input
-    type="date"
-    className="form-control"
-    value={dateFilter}
-    onChange={(e) => setDateFilter(e.target.value)}
-    style={{ maxWidth: "180px" }}
-  />
-</div>
-
+				{/* date filter */}
+				<input
+					type="date"
+					className="form-control"
+					value={dateFilter}
+					onChange={(e) => setDateFilter(e.target.value)}
+					style={{ maxWidth: "180px" }}
+				/>
+			</div>
 
 			<div className="card shadow-sm">
 				<div
