@@ -502,7 +502,7 @@ export default function InventoryPage() {
 															"account_name"
 																? `${value} ${
 																		form.user_name
-																			? `(@${form.user_name})`
+																			? `(${form.user_name})`
 																			: ""
 																  }`
 																: displayValue}
