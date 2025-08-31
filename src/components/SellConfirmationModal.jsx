@@ -32,7 +32,7 @@ export default function TransactionConfirmationModal({
 		text += "--------------------------\n";
 		text += `⚖️ Grand Total: ₱${grandTotal}\n\n`;
 		text +=
-			"➕ ADD THE FOLLOWING ACCOUNTS AND THEN CREATE YOUR PRIVATE SERVER, I WILL JOIN:\n\n";
+			"⚠️ ADD MO ACCOUNTS BELOW, GAWA KA PRIVATE SERVER JOJOIN AKO:\n\n";
 
 		// Only account names with username (unique)
 		const accountMap = {};
