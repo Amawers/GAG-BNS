@@ -30,9 +30,9 @@ export default function TransactionConfirmationModal({
 		});
 
 		text += "--------------------------\n";
-		text += `⚖️ Grand Total: ₱${grandTotal}\n\n`;
+		text += `⚖️ Grand Total: ₱${grandTotal}\n\n\n`;
 		text +=
-			"⚠️ ADD MO ACCOUNTS BELOW, GAWA KA PRIVATE SERVER JOJOIN AKO:\n\n";
+			"⚠️ ADD MO ACCOUNTS BELOW, TAS GAWA KA PRIVATE SERVER JOJOIN AKO:\n\n";
 
 		// Only account names with username (unique)
 		const accountMap = {};
@@ -40,7 +40,7 @@ export default function TransactionConfirmationModal({
 			accountMap[item.account_name] = item.user_name; // last one wins
 		});
 		Object.entries(accountMap).forEach(([name, user]) => {
-			text += `👤 ${name} (@${user})\n`;
+			text += `👤 ${name} (${user})\n`;
 		});
 
 		// Processor
